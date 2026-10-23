@@ -58,6 +58,7 @@ Each person opens the link, taps their name, then marks their Fridays and prefer
 
 - Anyone with the group link can open the roster. If it leaks, go to **More**, **Settings**, **Make a new link**. The old link stops working straight away.
 - On Render's free plan the app sleeps after 15 minutes without visitors. The first visit after that takes about a minute to wake up.
+- To add an admin: unlock, go to **More**, **People**, tap **Edit** under their name, type a 4 to 6 digit admin PIN twice and tap **Make admin**. Tell them the PIN in person. They tap their own name, then **More**, and unlock with it. **Remove as admin** in the same place stops their PIN working straight away.
 - Forgot the PIN? Someone with database access can reset it. Ask for help rather than deleting the database.
 
 ## Run it locally

@@ -19,10 +19,10 @@ import {
   preferencesFor,
   recentServingCounts,
 } from "./data";
-import { hashPin, newLinkToken, organiserSignature, verifyPin } from "./secrets";
+import { adminSignature, hashPin, newLinkToken, organiserSignature, verifyPin } from "./secrets";
 import { addDays, isFriday, shortDate, todayIn } from "./dates";
 import { autofill } from "./autofill";
-import { nextHue } from "./palette";
+import { firstName, nextHue } from "./palette";
 
 const { groups, people, roles, meetings, assignments, songs, availability, rolePreferences, activity } = schema;
 
@@ -134,17 +134,29 @@ export async function forgetPerson(form: FormData) {
 const failures = new Map<string, { count: number; until: number }>();
 
 export async function unlock(_: FormState, form: FormData): Promise<FormState> {
-  const { group, token } = await load(form);
+  const { group, token, me } = await load(form);
   const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
   const f = failures.get(ip);
   if (f && f.until > Date.now()) return { error: "Too many wrong tries. Wait ten minutes, then try again." };
-  if (!verifyPin(str(form, "pin"), group.pinHash)) {
+  const pin = str(form, "pin");
+  let signature: string | null = null;
+  if (verifyPin(pin, group.pinHash)) {
+    signature = organiserSignature(group.id, group.pinHash);
+  } else {
+    // Try the person on this device first, then the other admins.
+    const admins = (await activePeople())
+      .filter((p) => p.adminPinHash)
+      .sort((a, b) => Number(b.id === me?.id) - Number(a.id === me?.id));
+    const admin = admins.find((p) => verifyPin(pin, p.adminPinHash!));
+    if (admin) signature = adminSignature(group.id, admin.id, admin.adminPinHash!);
+  }
+  if (!signature) {
     const count = (f?.count ?? 0) + 1;
     failures.set(ip, { count: count >= 5 ? 0 : count, until: count >= 5 ? Date.now() + 10 * 60_000 : 0 });
     return { error: "That PIN doesn't match. Try again." };
   }
   failures.delete(ip);
-  (await cookies()).set(ORGANISER_COOKIE, organiserSignature(group.id, group.pinHash), cookieOptions);
+  (await cookies()).set(ORGANISER_COOKIE, signature, cookieOptions);
   const next = str(form, "next");
   redirect(next.startsWith(`/g/${token}`) ? next : `/g/${token}/more`);
 }
@@ -495,7 +507,12 @@ export async function setPersonActive(form: FormData) {
   const { group, token, me, organiser } = await organiserOnly(form);
   const id = int(form, "personId");
   const active = str(form, "active") === "1";
-  const [p] = await db().update(people).set({ active }).where(eq(people.id, id)).returning();
+  // Removing someone also ends their admin access.
+  const [p] = await db()
+    .update(people)
+    .set(active ? { active } : { active, adminPinHash: null })
+    .where(eq(people.id, id))
+    .returning();
   if (!active) {
     // Free their future slots so the dashboard shows them as open.
     const today = todayIn(group.timezone);
@@ -507,6 +524,27 @@ export async function setPersonActive(form: FormData) {
     }
   }
   await log(me, organiser, active ? `brought back ${p?.name}` : `removed ${p?.name} from the list`);
+  refresh(token);
+}
+
+export async function setAdmin(_: FormState, form: FormData): Promise<FormState> {
+  const { token, me, organiser } = await organiserOnly(form);
+  const id = int(form, "personId");
+  const pin = str(form, "pin");
+  if (!/^\d{4,6}$/.test(pin)) return { error: "The PIN needs to be 4 to 6 digits." };
+  if (pin !== str(form, "confirm")) return { error: "The two PINs don't match." };
+  const [before] = await db().select().from(people).where(and(eq(people.id, id), eq(people.active, true)));
+  if (!before) return { error: "That person isn't on the list any more." };
+  await db().update(people).set({ adminPinHash: hashPin(pin) }).where(eq(people.id, id));
+  await log(me, organiser, before.adminPinHash ? `changed ${before.name}'s admin PIN` : `made ${before.name} an admin`);
+  refresh(token);
+  return { ok: before.adminPinHash ? "PIN changed" : `${firstName(before.name)} is an admin` };
+}
+
+export async function removeAdmin(form: FormData) {
+  const { token, me, organiser } = await organiserOnly(form);
+  const [p] = await db().update(people).set({ adminPinHash: null }).where(eq(people.id, int(form, "personId"))).returning();
+  if (p) await log(me, organiser, `removed ${p.name} as an admin`);
   refresh(token);
 }
 

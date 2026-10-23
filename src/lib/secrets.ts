@@ -36,6 +36,12 @@ export function organiserSignature(groupId: number, pinHash: string): string {
   return createHmac("sha256", secret()).update(`organiser:${groupId}:${pinHash}`).digest("base64url");
 }
 
+/** Signs an admin's unlock. Changing or removing their PIN logs out only their devices. */
+export function adminSignature(groupId: number, personId: number, adminPinHash: string): string {
+  const mac = createHmac("sha256", secret()).update(`admin:${groupId}:${personId}:${adminPinHash}`).digest("base64url");
+  return `a.${personId}.${mac}`;
+}
+
 export function signatureMatches(a: string, b: string): boolean {
   const x = Buffer.from(a);
   const y = Buffer.from(b);

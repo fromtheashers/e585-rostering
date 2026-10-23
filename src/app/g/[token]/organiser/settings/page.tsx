@@ -96,6 +96,7 @@ export default async function Settings({
       <StateForm action={changePin} className="panel stack" resetOnOk>
         <Hidden values={{ token }} />
         <h2 style={{ fontSize: "var(--fs-md)", fontWeight: 600 }}>Organiser PIN</h2>
+        <p className="small muted">The main PIN. Admins each have their own, set on People.</p>
         <div className="form-row" style={{ gridTemplateColumns: "1fr 1fr" }}>
           <div className="field">
             <label htmlFor="pin">New PIN</label>

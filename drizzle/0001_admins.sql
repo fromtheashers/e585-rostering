@@ -1,0 +1,1 @@
+ALTER TABLE "people" ADD COLUMN "admin_pin_hash" text;

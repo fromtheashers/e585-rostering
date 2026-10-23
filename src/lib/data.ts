@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { and, asc, desc, eq, gte, inArray, lt, ne } from "drizzle-orm";
 import { db, schema } from "@/db";
 import type { AvailabilityStatus, Group, Person, PreferenceLevel, Role } from "@/db/schema";
-import { organiserSignature, signatureMatches } from "./secrets";
+import { adminSignature, organiserSignature, signatureMatches } from "./secrets";
 import { addDays, todayIn } from "./dates";
 
 export const PERSON_COOKIE = "e585_person";
@@ -24,7 +24,13 @@ export async function groupByToken(token: string): Promise<Group | null> {
 
 export async function isOrganiser(group: Group): Promise<boolean> {
   const value = (await cookies()).get(ORGANISER_COOKIE)?.value;
-  return !!value && signatureMatches(value, organiserSignature(group.id, group.pinHash));
+  if (!value) return false;
+  if (!value.startsWith("a.")) return signatureMatches(value, organiserSignature(group.id, group.pinHash));
+  // An admin's unlock: still valid only while they are on the list and still an admin.
+  const id = Number(value.split(".")[1]);
+  if (!Number.isInteger(id)) return false;
+  const [p] = await db().select().from(people).where(and(eq(people.id, id), eq(people.active, true))).limit(1);
+  return !!p?.adminPinHash && signatureMatches(value, adminSignature(group.id, p.id, p.adminPinHash));
 }
 
 export async function currentPerson(): Promise<Person | null> {

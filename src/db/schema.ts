@@ -38,6 +38,8 @@ export const people = pgTable("people", {
   maxPerMonth: integer("max_per_month"),
   defaultAvailability: availabilityStatus("default_availability").notNull().default("yes"),
   active: boolean("active").notNull().default(true),
+  /** Set when the person is an admin: their own PIN unlocks the organiser screens. */
+  adminPinHash: text("admin_pin_hash"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

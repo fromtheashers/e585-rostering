@@ -28,7 +28,7 @@ export default async function Unlock({
       </Link>
       <div>
         <h1 className="greeting sub">Organiser PIN</h1>
-        <p className="lede">Unlocks people, roles, meeting Fridays and the roster grid on this device.</p>
+        <p className="lede">Use the organiser PIN, or your own admin PIN. It unlocks people, roles, meeting Fridays and the roster grid on this device.</p>
       </div>
       <StateForm action={unlock} className="panel stack">
         <Hidden values={{ token, next: next ?? "" }} />
