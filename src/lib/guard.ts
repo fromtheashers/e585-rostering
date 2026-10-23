@@ -10,15 +10,10 @@ export async function memberContext(token: string, path: string): Promise<Ctx & 
   return ctx as Ctx & { me: Person };
 }
 
-export async function organiserContext(token: string, path: string) {
-  const ctx = await context(token);
-  if (!ctx.organiser) redirect(`/g/${token}/organiser/unlock?next=${encodeURIComponent(`/g/${token}${path}`)}`);
+/** Organiser screens: for the owner and admins, who are already signed in with their own PIN. */
+export async function organiserContext(token: string, path: string): Promise<Ctx & { me: Person }> {
+  const ctx = await memberContext(token, path);
+  if (!ctx.organiser) redirect(`/g/${token}/more`);
   return ctx;
 }
 
-/** Pages an organiser can use before picking their own name (the calendar). */
-export async function memberOrOrganiserContext(token: string, path: string) {
-  const ctx = await context(token);
-  if (!ctx.me && !ctx.organiser) redirect(`/g/${token}/who?next=${encodeURIComponent(`/g/${token}${path}`)}`);
-  return ctx;
-}

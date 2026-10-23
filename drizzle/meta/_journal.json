@@ -12,8 +12,8 @@
     {
       "idx": 1,
       "version": "7",
-      "when": 1792744735721,
-      "tag": "0001_admins",
+      "when": 1792745278438,
+      "tag": "0001_personal_pins",
       "breakpoints": true
     }
   ]

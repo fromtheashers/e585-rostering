@@ -16,13 +16,16 @@ export const availabilityStatus = pgEnum("availability_status", ["yes", "maybe",
 export const preferenceLevel = pgEnum("preference_level", ["love", "happy", "rather_not"]);
 export const assignmentStatus = pgEnum("assignment_status", ["suggested", "confirmed"]);
 export const assignmentSource = pgEnum("assignment_source", ["self", "organiser", "auto"]);
+/** Owner: whoever set up the group. Admins can do everything the owner can, except remove the owner. */
+export const personAccess = pgEnum("person_access", ["member", "admin", "owner"]);
 
 /** The one small group. The app holds a single row. */
 export const groups = pgTable("groups", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   linkToken: text("link_token").notNull().unique(),
-  pinHash: text("pin_hash").notNull(),
+  /** The old shared organiser PIN. Only used once, to claim the owner role on a group set up before people had PINs. */
+  pinHash: text("pin_hash"),
   startTime: text("start_time").notNull().default("19:30"),
   timezone: text("timezone").notNull().default("UTC"),
   /** Pairs of role ids one person may hold at the same meeting, e.g. [[1, 3]]. */
@@ -38,8 +41,9 @@ export const people = pgTable("people", {
   maxPerMonth: integer("max_per_month"),
   defaultAvailability: availabilityStatus("default_availability").notNull().default("yes"),
   active: boolean("active").notNull().default(true),
-  /** Set when the person is an admin: their own PIN unlocks the organiser screens. */
-  adminPinHash: text("admin_pin_hash"),
+  /** Each person makes their own PIN the first time they pick their name. Null until then. */
+  pinHash: text("pin_hash"),
+  access: personAccess("access").notNull().default("member"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -125,3 +129,4 @@ export type Assignment = typeof assignments.$inferSelect;
 export type Song = typeof songs.$inferSelect;
 export type AvailabilityStatus = (typeof availabilityStatus.enumValues)[number];
 export type PreferenceLevel = (typeof preferenceLevel.enumValues)[number];
+export type PersonAccess = (typeof personAccess.enumValues)[number];

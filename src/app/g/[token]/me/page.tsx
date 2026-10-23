@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { activeRoles, assignmentsFor, availabilityFor, levelOf, preferencesFor, statusOf, upcomingMeetings } from "@/lib/data";
 import { memberContext } from "@/lib/guard";
-import { forgetPerson, setAvailability, setDefaultAvailability, setMaxPerMonth, setPreference } from "@/lib/actions";
+import { changeMyPin, forgetPerson, setAvailability, setDefaultAvailability, setMaxPerMonth, setPreference } from "@/lib/actions";
 import { shortDate } from "@/lib/dates";
 import { Avatar, Hidden } from "@/components/ui";
-import { AutoSeg, SubmitButton } from "@/components/client";
+import { AutoSeg, StateForm, SubmitButton } from "@/components/client";
 
 export const metadata = { title: "Me" };
 
@@ -145,6 +145,32 @@ export default async function MePage({ params }: { params: Promise<{ token: stri
           </SubmitButton>
         </form>
       </section>
+
+      <details className="disclose panel">
+        <summary>Change my PIN</summary>
+        <StateForm action={changeMyPin} className="stack" resetOnOk>
+          <Hidden values={{ token }} />
+          <div className="field">
+            <label htmlFor="current">Current PIN</label>
+            <input className="input" id="current" name="current" type="password" inputMode="numeric" pattern="[0-9]{4,6}" maxLength={6} required autoComplete="current-password" />
+          </div>
+          <div className="form-row" style={{ gridTemplateColumns: "1fr 1fr" }}>
+            <div className="field">
+              <label htmlFor="pin">New PIN</label>
+              <input className="input" id="pin" name="pin" type="password" inputMode="numeric" pattern="[0-9]{4,6}" maxLength={6} required autoComplete="new-password" />
+            </div>
+            <div className="field">
+              <label htmlFor="confirm">Type it again</label>
+              <input className="input" id="confirm" name="confirm" type="password" inputMode="numeric" pattern="[0-9]{4,6}" maxLength={6} required autoComplete="new-password" />
+            </div>
+          </div>
+          <div>
+            <SubmitButton className="btn sm" pending="Changing…">
+              Change PIN
+            </SubmitButton>
+          </div>
+        </StateForm>
+      </details>
     </main>
   );
 }

@@ -1,6 +1,6 @@
 # E585 Rostering
 
-A small roster for a Friday small group of up to ten people. No accounts: everyone opens one secret group link and picks their name. The organiser unlocks extra screens with a PIN.
+A small roster for a Friday small group of up to ten people. No accounts: everyone opens one secret group link, picks their name and makes their own PIN. The person who sets it up is the owner, and the owner can make other people admins.
 
 What it does:
 
@@ -47,19 +47,22 @@ If you'd rather not use a Blueprint, click **New +** then **Web Service**, pick 
 ### 3. Set up your group
 
 1. On the Render service page, click the address under the service name (it ends in `.onrender.com`).
-2. You land on **Set up your group’s roster**. Type the group name, the usual start time, and a 4 to 6 digit organiser PIN. Click **Create the roster**.
+2. You land on **Set up your group’s roster**. Type the group name, the usual start time, your own name and a 4 to 6 digit PIN. Click **Create the roster**. You are now the owner.
 3. On **People**, type each person's name and click **Add**. Everyone gets a colour.
 4. Click **Add meeting Fridays** and tap each Friday you meet.
 5. Go to **More**, copy the group link, and send it to the group chat.
 
-Each person opens the link, taps their name, then marks their Fridays and preferences under **Me**.
+Each person opens the link, taps their name and makes their own PIN. Once a name has a PIN, it leaves the pick list, so nobody else can choose it. Then they mark their Fridays and preferences under **Me**.
 
 ### Good to know
 
 - Anyone with the group link can open the roster. If it leaks, go to **More**, **Settings**, **Make a new link**. The old link stops working straight away.
 - On Render's free plan the app sleeps after 15 minutes without visitors. The first visit after that takes about a minute to wake up.
-- To add an admin: unlock, go to **More**, **People**, tap **Edit** under their name, type a 4 to 6 digit admin PIN twice and tap **Make admin**. Tell them the PIN in person. They tap their own name, then **More**, and unlock with it. **Remove as admin** in the same place stops their PIN working straight away.
-- Forgot the PIN? Someone with database access can reset it. Ask for help rather than deleting the database.
+- **Owner and admins:** admins can do everything the owner can, except remove the owner or reset the owner's PIN. To make someone an admin, go to **More**, **People**, tap **Edit** under their name, then tap **Make admin**. **Remove as admin** in the same place takes it away.
+- **Signing in on a new phone:** on **Who are you?**, tap your name under **Already made your PIN?** and enter your PIN.
+- **Forgot a PIN:** the owner or an admin goes to **More**, **People**, taps **Edit** under that person's name, then **Reset PIN**. That person picks their name again and makes a new PIN. To change your own PIN, go to **Me**, **Change my PIN**.
+- **Owner forgot their PIN:** nobody in the app can reset it. Ask someone with access to the Neon database for help rather than deleting anything.
+- **A group set up before personal PINs:** whoever has the old organiser PIN picks their name, makes their PIN, then goes to **More**, **Become the owner** and enters the old PIN once.
 
 ## Run it locally
 

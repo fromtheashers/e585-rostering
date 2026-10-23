@@ -2,7 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { ArrowLeft } from "lucide-react";
 import { organiserContext } from "@/lib/guard";
-import { changePin, newLink, updateSettings } from "@/lib/actions";
+import { newLink, updateSettings } from "@/lib/actions";
 import { Hidden } from "@/components/ui";
 import { ConfirmButton, CopyButton, StateForm, SubmitButton, Toast } from "@/components/client";
 
@@ -93,26 +93,6 @@ export default async function Settings({
         </div>
       </section>
 
-      <StateForm action={changePin} className="panel stack" resetOnOk>
-        <Hidden values={{ token }} />
-        <h2 style={{ fontSize: "var(--fs-md)", fontWeight: 600 }}>Organiser PIN</h2>
-        <p className="small muted">The main PIN. Admins each have their own, set on People.</p>
-        <div className="form-row" style={{ gridTemplateColumns: "1fr 1fr" }}>
-          <div className="field">
-            <label htmlFor="pin">New PIN</label>
-            <input className="input" id="pin" name="pin" inputMode="numeric" pattern="[0-9]{4,6}" maxLength={6} required autoComplete="new-password" />
-          </div>
-          <div className="field">
-            <label htmlFor="confirm">Type it again</label>
-            <input className="input" id="confirm" name="confirm" inputMode="numeric" pattern="[0-9]{4,6}" maxLength={6} required autoComplete="new-password" />
-          </div>
-        </div>
-        <div>
-          <SubmitButton className="btn sm" pending="Changing…">
-            Change PIN
-          </SubmitButton>
-        </div>
-      </StateForm>
     </main>
   );
 }

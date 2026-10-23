@@ -4,11 +4,10 @@ import { notFound } from "next/navigation";
 import { and, asc, desc, eq, gte, inArray, lt, ne } from "drizzle-orm";
 import { db, schema } from "@/db";
 import type { AvailabilityStatus, Group, Person, PreferenceLevel, Role } from "@/db/schema";
-import { adminSignature, organiserSignature, signatureMatches } from "./secrets";
+import { personSignature, signatureMatches } from "./secrets";
 import { addDays, todayIn } from "./dates";
 
 export const PERSON_COOKIE = "e585_person";
-export const ORGANISER_COOKIE = "e585_organiser";
 
 const { groups, people, roles, meetings, assignments, songs, availability, rolePreferences, activity } = schema;
 
@@ -22,22 +21,18 @@ export async function groupByToken(token: string): Promise<Group | null> {
   return rows[0] ?? null;
 }
 
-export async function isOrganiser(group: Group): Promise<boolean> {
-  const value = (await cookies()).get(ORGANISER_COOKIE)?.value;
-  if (!value) return false;
-  if (!value.startsWith("a.")) return signatureMatches(value, organiserSignature(group.id, group.pinHash));
-  // An admin's unlock: still valid only while they are on the list and still an admin.
-  const id = Number(value.split(".")[1]);
-  if (!Number.isInteger(id)) return false;
-  const [p] = await db().select().from(people).where(and(eq(people.id, id), eq(people.active, true))).limit(1);
-  return !!p?.adminPinHash && signatureMatches(value, adminSignature(group.id, p.id, p.adminPinHash));
+/** The person this device is signed in as. The cookie stops working if their PIN changes or they leave the list. */
+export async function currentPerson(group: Group): Promise<Person | null> {
+  const raw = (await cookies()).get(PERSON_COOKIE)?.value ?? "";
+  const id = Number(raw.split(".")[0]);
+  if (!raw.includes(".") || !Number.isInteger(id)) return null;
+  const rows = await db().select().from(people).where(and(eq(people.id, id), eq(people.active, true))).limit(1);
+  const p = rows[0];
+  return p?.pinHash && signatureMatches(raw, personSignature(group.id, p.id, p.pinHash)) ? p : null;
 }
 
-export async function currentPerson(): Promise<Person | null> {
-  const raw = (await cookies()).get(PERSON_COOKIE)?.value;
-  const id = Number(raw);
-  if (!raw || !Number.isInteger(id)) return null;
-  const rows = await db().select().from(people).where(and(eq(people.id, id), eq(people.active, true))).limit(1);
+export async function ownerOf(): Promise<Person | null> {
+  const rows = await db().select().from(people).where(eq(people.access, "owner")).limit(1);
   return rows[0] ?? null;
 }
 
@@ -45,6 +40,7 @@ export interface Ctx {
   group: Group;
   token: string;
   me: Person | null;
+  /** The owner or an admin, signed in on this device. */
   organiser: boolean;
   today: string;
 }
@@ -53,8 +49,8 @@ export interface Ctx {
 export async function context(token: string): Promise<Ctx> {
   const group = await groupByToken(token);
   if (!group) notFound();
-  const [me, organiser] = await Promise.all([currentPerson(), isOrganiser(group)]);
-  return { group, token, me, organiser, today: todayIn(group.timezone) };
+  const me = await currentPerson(group);
+  return { group, token, me, organiser: !!me && me.access !== "member", today: todayIn(group.timezone) };
 }
 
 export async function activePeople(): Promise<Person[]> {

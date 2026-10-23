@@ -1,15 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { adminSignature, hashPin, organiserSignature, signatureMatches, verifyPin } from "./secrets.ts";
+import { hashPin, personSignature, signatureMatches, verifyPin } from "./secrets.ts";
 
-test("an admin's unlock is tied to that person and their current PIN", () => {
+test("a sign-in is tied to that person and their current PIN", () => {
   const hash = hashPin("2468");
-  const sig = adminSignature(1, 7, hash);
-  assert.ok(sig.startsWith("a.7."));
-  assert.ok(signatureMatches(sig, adminSignature(1, 7, hash)));
-  assert.ok(!signatureMatches(sig, adminSignature(1, 8, hash)));
-  assert.ok(!signatureMatches(sig, adminSignature(1, 7, hashPin("2468"))));
-  assert.ok(!signatureMatches(sig, organiserSignature(1, hash)));
+  const sig = personSignature(1, 7, hash);
+  assert.ok(sig.startsWith("7."));
+  assert.ok(signatureMatches(sig, personSignature(1, 7, hash)));
+  assert.ok(!signatureMatches(sig, personSignature(1, 8, hash)));
+  // A reset or changed PIN gets a new hash, which signs every old device out.
+  assert.ok(!signatureMatches(sig, personSignature(1, 7, hashPin("2468"))));
 });
 
 test("PINs verify only against their own hash", () => {

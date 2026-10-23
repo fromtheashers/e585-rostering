@@ -15,7 +15,7 @@ export default async function Setup() {
       <div>
         <h1 className="greeting">Set up your group&rsquo;s roster.</h1>
         <p className="lede">
-          This takes a minute. You&rsquo;ll be the organiser. Next you&rsquo;ll add everyone&rsquo;s names, then share
+          This takes a minute. You&rsquo;ll be the owner. Next you&rsquo;ll add everyone&rsquo;s names, then share
           one link in the group chat.
         </p>
       </div>
@@ -29,13 +29,17 @@ export default async function Setup() {
           <input className="input" id="startTime" name="startTime" type="time" defaultValue="19:30" required />
         </div>
         <div className="field">
-          <label htmlFor="pin">Organiser PIN</label>
-          <span className="hint">4 to 6 digits. You&rsquo;ll use it to edit people, roles and the roster.</span>
+          <label htmlFor="owner">Your name</label>
+          <input className="input" id="owner" name="owner" placeholder="First and last name" required maxLength={60} autoComplete="name" />
+        </div>
+        <div className="field">
+          <label htmlFor="pin">Your PIN</label>
+          <span className="hint">4 to 6 digits. Everyone makes their own PIN; yours signs you in as the owner.</span>
           <input
             className="input pin"
             id="pin"
             name="pin"
-            inputMode="numeric"
+            type="password" inputMode="numeric"
             pattern="[0-9]{4,6}"
             maxLength={6}
             required

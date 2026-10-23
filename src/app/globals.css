@@ -1157,6 +1157,8 @@ a.pane:focus-visible {
   font-weight: 600;
   font-size: var(--fs-md);
   text-align: left;
+  color: inherit;
+  text-decoration: none;
   cursor: pointer;
   transition:
     transform 160ms var(--ease-out),

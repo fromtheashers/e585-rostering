@@ -3,11 +3,10 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { and, asc, eq, gte, inArray, max } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, max, ne } from "drizzle-orm";
 import { db, schema } from "@/db";
-import type { AvailabilityStatus, Group, Person, PreferenceLevel } from "@/db/schema";
+import type { AvailabilityStatus, Group, Person, PersonAccess, PreferenceLevel } from "@/db/schema";
 import {
-  ORGANISER_COOKIE,
   PERSON_COOKIE,
   activePeople,
   activeRoles,
@@ -15,11 +14,11 @@ import {
   currentPerson,
   firstGroup,
   groupByToken,
-  isOrganiser,
+  ownerOf,
   preferencesFor,
   recentServingCounts,
 } from "./data";
-import { adminSignature, hashPin, newLinkToken, organiserSignature, verifyPin } from "./secrets";
+import { hashPin, newLinkToken, personSignature, verifyPin } from "./secrets";
 import { addDays, isFriday, shortDate, todayIn } from "./dates";
 import { autofill } from "./autofill";
 import { firstName, nextHue } from "./palette";
@@ -48,8 +47,8 @@ async function load(form: FormData) {
   const token = str(form, "token");
   const group = await groupByToken(token);
   if (!group) throw new Error("This link is no longer valid.");
-  const [me, organiser] = await Promise.all([currentPerson(), isOrganiser(group)]);
-  return { group, token, me, organiser };
+  const me = await currentPerson(group);
+  return { group, token, me, organiser: !!me && me.access !== "member" };
 }
 
 async function member(form: FormData) {
@@ -60,8 +59,8 @@ async function member(form: FormData) {
 
 async function organiserOnly(form: FormData) {
   const c = await load(form);
-  if (!c.organiser) redirect(`/g/${c.token}/organiser/unlock`);
-  return c;
+  if (!c.organiser) redirect(`/g/${c.token}/more`);
+  return { ...c, me: c.me as Person };
 }
 
 async function log(actor: Person | null, organiser: boolean, message: string) {
@@ -93,33 +92,87 @@ const DEFAULT_ROLES = [
 export async function createGroup(_: FormState, form: FormData): Promise<FormState> {
   if (await firstGroup()) return { error: "This app is already set up. Open the link from your organiser." };
   const name = str(form, "name");
+  const owner = str(form, "owner").slice(0, 60);
   const pin = str(form, "pin");
   const timezone = str(form, "timezone") || "UTC";
   if (!name) return { error: "Give the group a name." };
+  if (!owner) return { error: "Type your own name." };
   if (!/^\d{4,6}$/.test(pin)) return { error: "The PIN needs to be 4 to 6 digits." };
 
-  const pinHash = hashPin(pin);
   const linkToken = newLinkToken();
   const [group] = await db()
     .insert(groups)
-    .values({ name, pinHash, linkToken, timezone, startTime: str(form, "startTime") || "19:30" })
+    .values({ name, linkToken, timezone, startTime: str(form, "startTime") || "19:30" })
     .returning();
   await db()
     .insert(roles)
     .values(DEFAULT_ROLES.map((r, i) => ({ ...r, sortOrder: i + 1 })));
-  (await cookies()).set(ORGANISER_COOKIE, organiserSignature(group.id, group.pinHash), cookieOptions);
-  await log(null, true, `set up ${name}`);
+  const pinHash = hashPin(pin);
+  const [me] = await db().insert(people).values({ name: owner, hue: 0, pinHash, access: "owner" }).returning();
+  await signInAs(group, me.id, pinHash);
+  await log(me, true, `set up ${name}`);
   redirect(`/g/${linkToken}/organiser/people?welcome=1`);
 }
 
 /* ---------- Identity ---------- */
 
-export async function choosePerson(form: FormData) {
-  const { token } = await load(form);
-  const id = int(form, "personId");
-  const [p] = await db().select().from(people).where(and(eq(people.id, id), eq(people.active, true)));
+async function signInAs(group: Group, personId: number, pinHash: string) {
+  (await cookies()).set(PERSON_COOKIE, personSignature(group.id, personId, pinHash), cookieOptions);
+}
+
+const PIN = /^\d{4,6}$/;
+
+// Slows down PIN guessing: five wrong tries from one address locks it out for ten minutes.
+const failures = new Map<string, { count: number; until: number }>();
+
+async function guessKey() {
+  return (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+}
+
+function lockedOut(ip: string) {
+  const f = failures.get(ip);
+  return !!f && f.until > Date.now();
+}
+
+function wrongGuess(ip: string) {
+  const count = (failures.get(ip)?.count ?? 0) + 1;
+  failures.set(ip, { count: count >= 5 ? 0 : count, until: count >= 5 ? Date.now() + 10 * 60_000 : 0 });
+}
+
+/**
+ * Picking your name. The first time, you make your PIN and the name is yours; after that it
+ * needs that PIN, so nobody else can pick it.
+ */
+export async function signIn(_: FormState, form: FormData): Promise<FormState> {
+  const { group, token } = await load(form);
+  const [p] = await db().select().from(people).where(and(eq(people.id, int(form, "personId")), eq(people.active, true)));
   if (!p) redirect(`/g/${token}/who`);
-  (await cookies()).set(PERSON_COOKIE, String(p.id), cookieOptions);
+  const pin = str(form, "pin");
+  let pinHash = p.pinHash;
+
+  if (!pinHash) {
+    if (!PIN.test(pin)) return { error: "The PIN needs to be 4 to 6 digits." };
+    if (pin !== str(form, "confirm")) return { error: "The two PINs don't match." };
+    pinHash = hashPin(pin);
+    // Only claims the name if nobody else made a PIN for it a moment ago.
+    const claimed = await db()
+      .update(people)
+      .set({ pinHash })
+      .where(and(eq(people.id, p.id), isNull(people.pinHash)))
+      .returning();
+    if (!claimed.length) return { error: "Someone just picked this name. If it's you, ask an admin to reset its PIN." };
+    await log(p, false, "made their PIN");
+  } else {
+    const ip = await guessKey();
+    if (lockedOut(ip)) return { error: "Too many wrong tries. Wait ten minutes, then try again." };
+    if (!verifyPin(pin, pinHash)) {
+      wrongGuess(ip);
+      return { error: "That PIN doesn't match. Forgot it? Ask an admin to reset it." };
+    }
+    failures.delete(ip);
+  }
+
+  await signInAs(group, p.id, pinHash);
   const next = str(form, "next");
   redirect(next.startsWith(`/g/${token}`) ? next : `/g/${token}`);
 }
@@ -130,41 +183,42 @@ export async function forgetPerson(form: FormData) {
   redirect(`/g/${token}/who`);
 }
 
-// Slows down PIN guessing: five wrong tries from one address locks it out for ten minutes.
-const failures = new Map<string, { count: number; until: number }>();
-
-export async function unlock(_: FormState, form: FormData): Promise<FormState> {
-  const { group, token, me } = await load(form);
-  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
-  const f = failures.get(ip);
-  if (f && f.until > Date.now()) return { error: "Too many wrong tries. Wait ten minutes, then try again." };
-  const pin = str(form, "pin");
-  let signature: string | null = null;
-  if (verifyPin(pin, group.pinHash)) {
-    signature = organiserSignature(group.id, group.pinHash);
-  } else {
-    // Try the person on this device first, then the other admins.
-    const admins = (await activePeople())
-      .filter((p) => p.adminPinHash)
-      .sort((a, b) => Number(b.id === me?.id) - Number(a.id === me?.id));
-    const admin = admins.find((p) => verifyPin(pin, p.adminPinHash!));
-    if (admin) signature = adminSignature(group.id, admin.id, admin.adminPinHash!);
+export async function changeMyPin(_: FormState, form: FormData): Promise<FormState> {
+  const { group, token, me } = await member(form);
+  const ip = await guessKey();
+  if (lockedOut(ip)) return { error: "Too many wrong tries. Wait ten minutes, then try again." };
+  if (!me.pinHash || !verifyPin(str(form, "current"), me.pinHash)) {
+    wrongGuess(ip);
+    return { error: "Your current PIN doesn't match." };
   }
-  if (!signature) {
-    const count = (f?.count ?? 0) + 1;
-    failures.set(ip, { count: count >= 5 ? 0 : count, until: count >= 5 ? Date.now() + 10 * 60_000 : 0 });
+  const pin = str(form, "pin");
+  if (!PIN.test(pin)) return { error: "The new PIN needs to be 4 to 6 digits." };
+  if (pin !== str(form, "confirm")) return { error: "The two new PINs don't match." };
+  const pinHash = hashPin(pin);
+  await db().update(people).set({ pinHash }).where(eq(people.id, me.id));
+  await signInAs(group, me.id, pinHash);
+  refresh(token);
+  return { ok: "PIN changed. Other phones you use will ask for the new one." };
+}
+
+/**
+ * Groups set up before everyone had a PIN had one shared organiser PIN. Entering it once
+ * makes whoever is signed in the owner, then it is cleared.
+ */
+export async function claimOwner(_: FormState, form: FormData): Promise<FormState> {
+  const { group, token, me } = await member(form);
+  if (!group.pinHash || (await ownerOf())) redirect(`/g/${token}/more`);
+  const ip = await guessKey();
+  if (lockedOut(ip)) return { error: "Too many wrong tries. Wait ten minutes, then try again." };
+  if (!verifyPin(str(form, "pin"), group.pinHash)) {
+    wrongGuess(ip);
     return { error: "That PIN doesn't match. Try again." };
   }
   failures.delete(ip);
-  (await cookies()).set(ORGANISER_COOKIE, signature, cookieOptions);
-  const next = str(form, "next");
-  redirect(next.startsWith(`/g/${token}`) ? next : `/g/${token}/more`);
-}
-
-export async function lock(form: FormData) {
-  const { token } = await load(form);
-  (await cookies()).delete(ORGANISER_COOKIE);
-  redirect(`/g/${token}/more`);
+  await db().update(people).set({ access: "owner" }).where(eq(people.id, me.id));
+  await db().update(groups).set({ pinHash: null }).where(eq(groups.id, group.id));
+  await log(me, true, "became the owner");
+  redirect(`/g/${token}/organiser/people`);
 }
 
 /* ---------- Roles at a meeting ---------- */
@@ -507,12 +561,13 @@ export async function setPersonActive(form: FormData) {
   const { group, token, me, organiser } = await organiserOnly(form);
   const id = int(form, "personId");
   const active = str(form, "active") === "1";
-  // Removing someone also ends their admin access.
+  // The owner can't be removed. Removing someone also ends their admin access.
   const [p] = await db()
     .update(people)
-    .set(active ? { active } : { active, adminPinHash: null })
-    .where(eq(people.id, id))
+    .set(active ? { active } : { active, access: "member" })
+    .where(and(eq(people.id, id), ne(people.access, "owner")))
     .returning();
+  if (!p) return;
   if (!active) {
     // Free their future slots so the dashboard shows them as open.
     const today = todayIn(group.timezone);
@@ -527,24 +582,29 @@ export async function setPersonActive(form: FormData) {
   refresh(token);
 }
 
-export async function setAdmin(_: FormState, form: FormData): Promise<FormState> {
+/** Make someone an admin or a member again. Nobody can change the owner. */
+export async function setAccess(form: FormData) {
   const { token, me, organiser } = await organiserOnly(form);
-  const id = int(form, "personId");
-  const pin = str(form, "pin");
-  if (!/^\d{4,6}$/.test(pin)) return { error: "The PIN needs to be 4 to 6 digits." };
-  if (pin !== str(form, "confirm")) return { error: "The two PINs don't match." };
-  const [before] = await db().select().from(people).where(and(eq(people.id, id), eq(people.active, true)));
-  if (!before) return { error: "That person isn't on the list any more." };
-  await db().update(people).set({ adminPinHash: hashPin(pin) }).where(eq(people.id, id));
-  await log(me, organiser, before.adminPinHash ? `changed ${before.name}'s admin PIN` : `made ${before.name} an admin`);
+  const access = str(form, "access") as PersonAccess;
+  if (access !== "admin" && access !== "member") return;
+  const [p] = await db()
+    .update(people)
+    .set({ access })
+    .where(and(eq(people.id, int(form, "personId")), ne(people.access, "owner")))
+    .returning();
+  if (p) await log(me, organiser, access === "admin" ? `made ${p.name} an admin` : `removed ${p.name} as an admin`);
   refresh(token);
-  return { ok: before.adminPinHash ? "PIN changed" : `${firstName(before.name)} is an admin` };
 }
 
-export async function removeAdmin(form: FormData) {
+/** For a forgotten PIN: the person makes a new one next time they pick their name. */
+export async function resetPin(form: FormData) {
   const { token, me, organiser } = await organiserOnly(form);
-  const [p] = await db().update(people).set({ adminPinHash: null }).where(eq(people.id, int(form, "personId"))).returning();
-  if (p) await log(me, organiser, `removed ${p.name} as an admin`);
+  const [p] = await db()
+    .update(people)
+    .set({ pinHash: null })
+    .where(and(eq(people.id, int(form, "personId")), ne(people.access, "owner")))
+    .returning();
+  if (p) await log(me, organiser, `reset ${p.name}'s PIN`);
   refresh(token);
 }
 
@@ -633,19 +693,6 @@ export async function updateSettings(_: FormState, form: FormData): Promise<Form
   await db().update(groups).set({ name, startTime, timezone }).where(eq(groups.id, group.id));
   refresh(token);
   return { ok: "Saved" };
-}
-
-export async function changePin(_: FormState, form: FormData): Promise<FormState> {
-  const { group, token, me, organiser } = await organiserOnly(form);
-  const pin = str(form, "pin");
-  if (!/^\d{4,6}$/.test(pin)) return { error: "The PIN needs to be 4 to 6 digits." };
-  if (pin !== str(form, "confirm")) return { error: "The two PINs don't match." };
-  const pinHash = hashPin(pin);
-  await db().update(groups).set({ pinHash }).where(eq(groups.id, group.id));
-  (await cookies()).set(ORGANISER_COOKIE, organiserSignature(group.id, pinHash), cookieOptions);
-  await log(me, organiser, "changed the organiser PIN");
-  refresh(token);
-  return { ok: "PIN changed. Other devices will need the new PIN." };
 }
 
 export async function newLink(form: FormData) {

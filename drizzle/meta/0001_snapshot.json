@@ -1,5 +1,5 @@
 {
-  "id": "374cf69f-b0fe-4bd3-9c97-57eb523109a9",
+  "id": "f59e7e92-3114-446e-95e5-f3b75f3eb078",
   "prevId": "ba2d9651-84b8-4ff7-85d9-99686a087399",
   "version": "7",
   "dialect": "postgresql",
@@ -276,7 +276,7 @@
           "name": "pin_hash",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "start_time": {
           "name": "start_time",
@@ -420,11 +420,19 @@
           "notNull": true,
           "default": true
         },
-        "admin_pin_hash": {
-          "name": "admin_pin_hash",
+        "pin_hash": {
+          "name": "pin_hash",
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "access": {
+          "name": "access",
+          "type": "person_access",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'member'"
         },
         "created_at": {
           "name": "created_at",
@@ -707,6 +715,15 @@
         "yes",
         "maybe",
         "no"
+      ]
+    },
+    "public.person_access": {
+      "name": "person_access",
+      "schema": "public",
+      "values": [
+        "member",
+        "admin",
+        "owner"
       ]
     },
     "public.preference_level": {
