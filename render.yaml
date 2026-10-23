@@ -3,6 +3,8 @@ services:
     name: e585-rostering
     runtime: node
     plan: free
+    # Same region as the Neon database (AWS Singapore), so each query is a short hop.
+    region: singapore
     buildCommand: npm ci && npm run build
     startCommand: npm start
     healthCheckPath: /setup
