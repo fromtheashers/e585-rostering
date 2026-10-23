@@ -5,11 +5,10 @@ import { notFound } from "next/navigation";
 import { and, asc, desc, eq, gte, inArray, lt, ne } from "drizzle-orm";
 import { db, schema } from "@/db";
 import type { AvailabilityStatus, Group, Person, PreferenceLevel, Role } from "@/db/schema";
-import { organiserSignature, signatureMatches } from "./secrets";
+import { personSignature, signatureMatches } from "./secrets";
 import { addDays, todayIn } from "./dates";
 
 export const PERSON_COOKIE = "e585_person";
-export const ORGANISER_COOKIE = "e585_organiser";
 
 const { groups, people, roles, meetings, assignments, songs, availability, rolePreferences, activity } = schema;
 
@@ -24,23 +23,40 @@ export const groupByToken = cache(async (token: string): Promise<Group | null> =
   return rows[0] ?? null;
 });
 
-export async function isOrganiser(group: Group): Promise<boolean> {
-  const value = (await cookies()).get(ORGANISER_COOKIE)?.value;
-  return !!value && signatureMatches(value, organiserSignature(group.id, group.pinHash));
+// The cookie's person row is fetched (once per request) alongside the group; the signature check needs the group.
+const cookiePerson = cache(async (): Promise<{ raw: string; person: Person | null }> => {
+  const raw = (await cookies()).get(PERSON_COOKIE)?.value ?? "";
+  const id = Number(raw.split(".")[0]);
+  if (!raw.includes(".") || !Number.isInteger(id)) return { raw, person: null };
+  const rows = await db().select().from(people).where(and(eq(people.id, id), eq(people.active, true))).limit(1);
+  return { raw, person: rows[0] ?? null };
+});
+
+/** The person this device is signed in as. The cookie stops working if their PIN changes or they leave the list. */
+export function signedIn(group: Group, { raw, person: p }: { raw: string; person: Person | null }): Person | null {
+  return p?.pinHash && signatureMatches(raw, personSignature(group.id, p.id, p.pinHash)) ? p : null;
 }
 
-export const currentPerson = cache(async (): Promise<Person | null> => {
-  const raw = (await cookies()).get(PERSON_COOKIE)?.value;
-  const id = Number(raw);
-  if (!raw || !Number.isInteger(id)) return null;
-  const rows = await db().select().from(people).where(and(eq(people.id, id), eq(people.active, true))).limit(1);
+export async function currentPerson(group: Group): Promise<Person | null> {
+  return signedIn(group, await cookiePerson());
+}
+
+/** Looks up the group and the signed-in person in one round trip. */
+export async function groupAndPerson(token: string): Promise<{ group: Group | null; me: Person | null }> {
+  const [group, cookie] = await Promise.all([groupByToken(token), cookiePerson()]);
+  return { group, me: group ? signedIn(group, cookie) : null };
+}
+
+export async function ownerOf(): Promise<Person | null> {
+  const rows = await db().select().from(people).where(eq(people.access, "owner")).limit(1);
   return rows[0] ?? null;
-});
+}
 
 export interface Ctx {
   group: Group;
   token: string;
   me: Person | null;
+  /** The owner or an admin, signed in on this device. */
   organiser: boolean;
   today: string;
 }
@@ -48,10 +64,9 @@ export interface Ctx {
 /** Loads the group for a link, or shows Not Found so a wrong link reveals nothing. */
 export const context = cache(async (token: string): Promise<Ctx> => {
   // The group and the person don't depend on each other, so fetch both in one round trip.
-  const [group, me] = await Promise.all([groupByToken(token), currentPerson()]);
+  const { group, me } = await groupAndPerson(token);
   if (!group) notFound();
-  const organiser = await isOrganiser(group);
-  return { group, token, me, organiser, today: todayIn(group.timezone) };
+  return { group, token, me, organiser: !!me && me.access !== "member", today: todayIn(group.timezone) };
 });
 
 export async function activePeople(): Promise<Person[]> {

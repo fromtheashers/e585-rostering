@@ -31,9 +31,13 @@ function secret(): string {
   return "development-only-secret";
 }
 
-/** Signs the organiser unlock. Changing the PIN changes pinHash, which logs every device out. */
-export function organiserSignature(groupId: number, pinHash: string): string {
-  return createHmac("sha256", secret()).update(`organiser:${groupId}:${pinHash}`).digest("base64url");
+/**
+ * The "this device is signed in as" cookie: person id plus a signature over their PIN hash.
+ * Changing or resetting someone's PIN signs out every device they were on.
+ */
+export function personSignature(groupId: number, personId: number, pinHash: string): string {
+  const mac = createHmac("sha256", secret()).update(`person:${groupId}:${personId}:${pinHash}`).digest("base64url");
+  return `${personId}.${mac}`;
 }
 
 export function signatureMatches(a: string, b: string): boolean {

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { activePeople, context } from "@/lib/data";
-import { choosePerson } from "@/lib/actions";
-import { Avatar, Hidden } from "@/components/ui";
+import { Avatar } from "@/components/ui";
+import type { Person } from "@/db/schema";
 
 export const metadata = { title: "Who are you?" };
 
@@ -14,44 +14,60 @@ export default async function Who({
 }) {
   const { token } = await params;
   const { next } = await searchParams;
-  const { group, me, organiser } = await context(token);
+  const { group } = await context(token);
   const people = await activePeople();
+  const open = people.filter((p) => !p.pinHash);
+  const taken = people.filter((p) => p.pinHash);
+  const href = (p: Person) => `/g/${token}/who/${p.id}${next ? `?next=${encodeURIComponent(next)}` : ""}`;
 
   return (
     <main className="shell page" style={{ maxWidth: 720 }}>
       <div>
         <h1 className="greeting">Who are you?</h1>
-        <p className="lede">Tap your name. This phone will remember it, so you only do this once.</p>
+        <p className="lede">Tap your name and make a PIN. Once you have, nobody else can pick your name.</p>
       </div>
 
       {people.length === 0 ? (
         <div className="empty">
           <strong>Nobody has been added to {group.name} yet.</strong>
-          <p className="muted">The organiser adds everyone&rsquo;s names first.</p>
-          <Link className="btn primary" href={organiser ? `/g/${token}/organiser/people` : `/g/${token}/organiser/unlock?next=/g/${token}/organiser/people`}>
-            I&rsquo;m the organiser: add names
-          </Link>
+          <p className="muted">The owner adds everyone&rsquo;s names first.</p>
         </div>
+      ) : open.length === 0 ? (
+        <p className="small muted">Everyone on the list has made a PIN. If yours is below, tap it and enter your PIN.</p>
       ) : (
         <div className="names">
-          {people.map((p) => (
-            <form key={p.id} action={choosePerson}>
-              <Hidden values={{ token, personId: p.id, next: next ?? "" }} />
-              <button type="submit" className="name-btn" aria-pressed={me?.id === p.id}>
-                <Avatar person={p} size="lg" />
-                {p.name}
-              </button>
-            </form>
+          {open.map((p) => (
+            <Link key={p.id} href={href(p)} className="name-btn">
+              <Avatar person={p} size="lg" />
+              {p.name}
+            </Link>
           ))}
         </div>
       )}
 
-      {people.length > 0 ? (
-        <p className="small muted">
-          Not on the list? Ask the organiser to add you.{" "}
-          <Link href={`/g/${token}/organiser/unlock?next=/g/${token}/organiser/people`}>Organiser</Link>
-        </p>
+      {taken.length ? (
+        <section aria-labelledby="taken-h">
+          <div className="section-head">
+            <h2 id="taken-h">Already made your PIN?</h2>
+            <span className="aside">For signing in on another phone</span>
+          </div>
+          <ul className="row-list">
+            {taken.map((p) => (
+              <li key={p.id}>
+                <Link href={href(p)} className="row" style={{ minHeight: 48 }}>
+                  <Avatar person={p} />
+                  <span className="row-main">
+                    <strong>{p.name}</strong>
+                  </span>
+                  <span className="small muted">Enter PIN</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
+
+      {people.length > 0 ? <p className="small muted">Not on the list? Ask the owner or an admin to add you.</p> : null}
     </main>
   );
 }

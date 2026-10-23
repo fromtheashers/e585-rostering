@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { activePeople, activeRoles, assignmentsFor, meetingsBetween, songsFor } from "@/lib/data";
-import { memberOrOrganiserContext } from "@/lib/guard";
+import { memberContext } from "@/lib/guard";
 import { setMeeting } from "@/lib/actions";
 import { myRoles, panesFor } from "@/lib/roster";
 import { addMonths, fridaysInMonth, monthKey, monthName, prettyTime } from "@/lib/dates";
@@ -21,7 +21,7 @@ export default async function CalendarPage({
 }) {
   const { token } = await params;
   const { from } = await searchParams;
-  const { group, me, organiser, today } = await memberOrOrganiserContext(token, "/calendar");
+  const { group, me, organiser, today } = await memberContext(token, "/calendar");
   const base = `/g/${token}`;
 
   const thisMonth = monthKey(today);

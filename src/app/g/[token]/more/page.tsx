@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { ChevronRight } from "lucide-react";
-import { activePeople, activeRoles, assignmentsFor, recentActivity, songsFor, upcomingMeetings } from "@/lib/data";
-import { memberOrOrganiserContext } from "@/lib/guard";
-import { forgetPerson, lock } from "@/lib/actions";
+import { activePeople, activeRoles, assignmentsFor, ownerOf, recentActivity, songsFor, upcomingMeetings } from "@/lib/data";
+import { memberContext } from "@/lib/guard";
+import { forgetPerson } from "@/lib/actions";
 import { rosterText } from "@/lib/roster";
 import { Hidden } from "@/components/ui";
 import { CopyButton } from "@/components/client";
@@ -22,10 +22,10 @@ function timeAgo(at: Date, now: Date) {
 
 export default async function More({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const { group, organiser, today } = await memberOrOrganiserContext(token, "/more");
+  const { group, organiser, today } = await memberContext(token, "/more");
   const base = `/g/${token}`;
 
-  const [meetings, roles, people, log] = await Promise.all([upcomingMeetings(today, 3), activeRoles(), activePeople(), recentActivity(30)]);
+  const [meetings, roles, people, log, owner] = await Promise.all([upcomingMeetings(today, 3), activeRoles(), activePeople(), recentActivity(30), ownerOf()]);
   const ids = meetings.map((m) => m.id);
   const [assignments, songs] = await Promise.all([assignmentsFor(ids), songsFor(ids)]);
   const host = (await headers()).get("host") ?? "";
@@ -52,23 +52,15 @@ export default async function More({ params }: { params: Promise<{ token: string
       <section aria-labelledby="org-h">
         <div className="section-head">
           <h2 id="org-h">Organiser</h2>
-          {organiser ? (
-            <form action={lock}>
-              <Hidden values={{ token }} />
-              <button className="link-btn" type="submit">
-                Lock on this device
-              </button>
-            </form>
-          ) : null}
         </div>
         {organiser ? (
           <ul className="row-list panel flush">
             {[
               { href: "/organiser/roster", label: "Roster grid", sub: "See every Friday at once, auto-fill, confirm" },
               { href: "/calendar", label: "Meeting Fridays", sub: "Add or call off Fridays" },
-              { href: "/organiser/people", label: "People", sub: "Add, rename or remove names" },
+              { href: "/organiser/people", label: "People", sub: "Add or remove names, admins, reset a PIN" },
               { href: "/organiser/roles", label: "Roles", sub: "Names, optional roles, song sets" },
-              { href: "/organiser/settings", label: "Settings", sub: "Group name, start time, PIN, new link" },
+              { href: "/organiser/settings", label: "Settings", sub: "Group name, start time, new link" },
             ].map((item) => (
               <li key={item.href}>
                 <Link href={base + item.href} className="row">
@@ -81,13 +73,17 @@ export default async function More({ params }: { params: Promise<{ token: string
               </li>
             ))}
           </ul>
-        ) : (
+        ) : !owner && group.pinHash ? (
           <div className="panel" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", justifyContent: "space-between" }}>
-            <p className="small muted">Organiser tools need the PIN.</p>
+            <p className="small muted">Have the old organiser PIN? Enter it once to become the owner.</p>
             <Link className="btn sm" href={`${base}/organiser/unlock`}>
-              Unlock organiser tools
+              Become the owner
             </Link>
           </div>
+        ) : (
+          <p className="small muted">
+            Organiser tools are for the owner and admins.{owner ? ` Ask ${owner.name} if you should be an admin.` : ""}
+          </p>
         )}
       </section>
 

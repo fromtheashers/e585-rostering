@@ -2,12 +2,14 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { allPeople } from "@/lib/data";
 import { organiserContext } from "@/lib/guard";
-import { addPerson, renamePerson, setPersonActive, setPersonHue } from "@/lib/actions";
-import { JEWELS } from "@/lib/palette";
+import { addPerson, renamePerson, resetPin, setAccess, setPersonActive, setPersonHue } from "@/lib/actions";
+import { JEWELS, firstName } from "@/lib/palette";
 import { Avatar, Hidden } from "@/components/ui";
 import { ConfirmButton, StateForm, SubmitButton, Toast } from "@/components/client";
 
 export const metadata = { title: "People" };
+
+const ACCESS = { owner: "Owner", admin: "Admin", member: "" } as const;
 
 export default async function People({
   params,
@@ -31,7 +33,7 @@ export default async function People({
       </Link>
       <div>
         <h1 className="greeting sub">People</h1>
-        <p className="lede">These names appear on the &ldquo;Who are you?&rdquo; screen. Everyone gets their own colour.</p>
+        <p className="lede">These names appear on the &ldquo;Who are you?&rdquo; screen. Each person makes their own PIN the first time they pick their name.</p>
       </div>
 
       {welcome ? <Toast message="Your roster is ready. Add everyone's names." /> : null}
@@ -64,7 +66,9 @@ export default async function People({
                   <Avatar person={p} />
                   <span className="row-main">
                     <strong>{p.name}</strong>
-                    <span className="row-sub">{p.id === me?.id ? "This is you on this device" : JEWELS[p.hue]?.name}</span>
+                    <span className="row-sub">
+                      {[ACCESS[p.access], p.pinHash ? "" : "No PIN yet", p.id === me.id ? "You" : JEWELS[p.hue]?.name].filter(Boolean).join(" · ")}
+                    </span>
                   </span>
                 </div>
                 <details className="disclose">
@@ -96,12 +100,36 @@ export default async function People({
                         Set colour
                       </SubmitButton>
                     </form>
-                    <form action={setPersonActive}>
-                      <Hidden values={{ token, personId: p.id, active: "0" }} />
-                      <ConfirmButton question={`Remove ${p.name}? Their upcoming slots open up.`} confirm="Remove">
-                        Remove from the list
-                      </ConfirmButton>
-                    </form>
+                    {p.access === "owner" ? (
+                      <p className="small muted">
+                        {p.id === me.id ? "You're the owner. Change your PIN on Me." : `${firstName(p.name)} is the owner. Admins can't remove the owner.`}
+                      </p>
+                    ) : (
+                      <div className="actions">
+                        <form action={setAccess}>
+                          <Hidden values={{ token, personId: p.id, access: p.access === "admin" ? "member" : "admin" }} />
+                          <SubmitButton className="btn" pending="Saving…">
+                            {p.access === "admin" ? "Remove as admin" : "Make admin"}
+                          </SubmitButton>
+                        </form>
+                        {p.pinHash ? (
+                          <form action={resetPin}>
+                            <Hidden values={{ token, personId: p.id }} />
+                            <ConfirmButton question={`Reset ${firstName(p.name)}'s PIN? They make a new one next time they pick their name.`} confirm="Reset PIN">
+                              Reset PIN
+                            </ConfirmButton>
+                          </form>
+                        ) : null}
+                      </div>
+                    )}
+                    {p.access === "owner" ? null : (
+                      <form action={setPersonActive}>
+                        <Hidden values={{ token, personId: p.id, active: "0" }} />
+                        <ConfirmButton question={`Remove ${p.name}? Their upcoming slots open up.`} confirm="Remove">
+                          Remove from the list
+                        </ConfirmButton>
+                      </form>
+                    )}
                   </div>
                 </details>
               </li>
@@ -144,11 +172,6 @@ export default async function People({
             <Link className="btn sm primary" href={`${base}/calendar`}>
               Add meeting Fridays
             </Link>
-            {!me ? (
-              <Link className="btn sm ghost" href={`${base}/who`}>
-                Pick my own name
-              </Link>
-            ) : null}
           </div>
         </div>
       ) : null}
