@@ -126,6 +126,15 @@ button {
   color: inherit;
 }
 
+/* Taps act straight away: no double-tap-to-zoom wait on buttons and links. */
+a,
+button,
+label,
+select,
+summary {
+  touch-action: manipulation;
+}
+
 .num {
   font-variant-numeric: tabular-nums;
 }
@@ -874,9 +883,6 @@ a.pane:focus-visible {
   outline-offset: 1px;
 }
 
-.seg[data-pending="true"] {
-  opacity: 0.7;
-}
 
 .seg.wide label {
   min-width: 0;
@@ -1274,6 +1280,57 @@ details.disclose[open] > summary svg {
   .toast {
     bottom: 24px;
   }
+}
+
+/* ---------- Loading ---------- */
+
+/* Appears only if the page takes longer than a blink, then gently pulses. */
+.loading {
+  opacity: 0;
+  animation:
+    loading-in 200ms var(--ease-out) 150ms forwards,
+    loading-pulse 1.4s ease-in-out 350ms infinite;
+}
+
+@keyframes loading-in {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes loading-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.bone {
+  background: var(--panel);
+  border-radius: var(--radius-sm);
+}
+
+.bone-title {
+  height: 38px;
+  width: min(420px, 80%);
+}
+
+.bone-line {
+  height: 18px;
+  width: min(240px, 55%);
+  margin-top: 14px;
+}
+
+.bone-block {
+  height: 220px;
+  border-radius: var(--radius);
+}
+
+.bone-block.short {
+  height: 120px;
 }
 
 /* Reduced motion keeps colour and opacity changes, and drops movement. */
