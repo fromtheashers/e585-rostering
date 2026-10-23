@@ -234,14 +234,18 @@ export function TabBar({ base }: { base: string }) {
 }
 
 export function Toast({ message }: { message: string }) {
-  const [show, setShow] = useState(true);
+  const [phase, setPhase] = useState<"shown" | "leaving" | "gone">("shown");
   useEffect(() => {
-    const t = setTimeout(() => setShow(false), 2600);
-    return () => clearTimeout(t);
+    const leave = setTimeout(() => setPhase("leaving"), 2600);
+    const gone = setTimeout(() => setPhase("gone"), 2800);
+    return () => {
+      clearTimeout(leave);
+      clearTimeout(gone);
+    };
   }, []);
-  if (!show) return null;
+  if (phase === "gone") return null;
   return (
-    <div className="toast" role="status">
+    <div className={phase === "leaving" ? "toast is-leaving" : "toast"} role="status">
       {message}
     </div>
   );

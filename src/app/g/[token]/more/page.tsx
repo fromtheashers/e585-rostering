@@ -35,7 +35,7 @@ export default async function More({ params }: { params: Promise<{ token: string
 
   return (
     <main className="shell page" style={{ maxWidth: 760 }}>
-      <h1 className="greeting">More</h1>
+      <h1 className="greeting sub">More</h1>
 
       <section className="panel stack" aria-labelledby="share-h">
         <h2 id="share-h" style={{ fontSize: "var(--fs-md)", fontWeight: 600 }}>

@@ -30,7 +30,7 @@ export default async function People({
         <ArrowLeft size={18} aria-hidden /> More
       </Link>
       <div>
-        <h1 className="greeting">People</h1>
+        <h1 className="greeting sub">People</h1>
         <p className="lede">These names appear on the &ldquo;Who are you?&rdquo; screen. Everyone gets their own colour.</p>
       </div>
 

@@ -35,7 +35,7 @@ export default async function CalendarPage({
   return (
     <main className="shell page" style={{ maxWidth: 760 }}>
       <div>
-        <h1 className="greeting">Which Fridays we meet</h1>
+        <h1 className="greeting sub">Which Fridays we meet</h1>
         <p className="lede">
           {organiser
             ? "Tap Add or Call off to change a Friday. Everyone sees this calendar."

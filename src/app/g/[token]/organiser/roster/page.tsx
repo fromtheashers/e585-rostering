@@ -56,7 +56,7 @@ export default async function RosterGrid({ params }: { params: Promise<{ token: 
         <ArrowLeft size={18} aria-hidden /> More
       </Link>
       <div>
-        <h1 className="greeting">Roster grid</h1>
+        <h1 className="greeting sub">Roster grid</h1>
         <p className="lede">
           {meetings.length === 0
             ? "No meetings planned yet."

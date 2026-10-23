@@ -47,7 +47,7 @@ export default async function Roles({ params }: { params: Promise<{ token: strin
         <ArrowLeft size={18} aria-hidden /> More
       </Link>
       <div>
-        <h1 className="greeting">Roles</h1>
+        <h1 className="greeting sub">Roles</h1>
         <p className="lede">One person serves in each role at a meeting. Order here is the order on the roster.</p>
       </div>
 

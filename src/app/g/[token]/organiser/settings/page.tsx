@@ -44,7 +44,7 @@ export default async function Settings({
       <Link href={`${base}/more`} className="backlink">
         <ArrowLeft size={18} aria-hidden /> More
       </Link>
-      <h1 className="greeting">Settings</h1>
+      <h1 className="greeting sub">Settings</h1>
       {newlink ? <Toast message="New link made. Share it in the group chat." /> : null}
 
       <StateForm action={updateSettings} className="panel stack">

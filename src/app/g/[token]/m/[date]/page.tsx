@@ -64,7 +64,7 @@ export default async function MeetingPage({ params }: { params: Promise<{ token:
         <ArrowLeft size={18} aria-hidden /> Home
       </Link>
       <div>
-        <h1 className="greeting">{longDate(date)}</h1>
+        <h1 className="greeting sub">{longDate(date)}</h1>
         <p className="lede">
           {prettyTime(meeting.startTime ?? group.startTime)} · {past ? "this meeting has passed" : relativeFriday(today, date)}
         </p>

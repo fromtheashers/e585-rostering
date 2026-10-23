@@ -252,7 +252,7 @@ button {
 }
 
 .tabbar a:active svg {
-  transform: scale(0.9);
+  transform: scale(0.94);
 }
 
 .tabbar svg {
@@ -292,6 +292,16 @@ main.page {
   line-height: 1.08;
   letter-spacing: -0.01em;
   max-width: 22ch;
+}
+
+.greeting.sub {
+  font-size: 32px;
+}
+
+@media (min-width: 760px) {
+  .greeting.sub {
+    font-size: 38px;
+  }
 }
 
 .greeting em {
@@ -475,7 +485,6 @@ a.row {
   white-space: nowrap;
   transition:
     transform 160ms var(--ease-out),
-    background-color 150ms ease,
     opacity 150ms ease;
 }
 
@@ -635,7 +644,7 @@ a.row {
   background: var(--jewel, var(--glass));
   color: #fff;
   text-decoration: none;
-  transition: background-color 280ms var(--ease-out);
+  transition: background-color 200ms var(--ease-out);
 }
 
 .window > .pane:first-child {
@@ -1254,6 +1263,13 @@ details.disclose[open] > summary svg {
   }
 }
 
+/* Leaving is quicker than arriving, and sinks back the way it came. */
+.toast.is-leaving {
+  opacity: 0;
+  transform: translate(-50%, 8px);
+  transition-duration: 150ms;
+}
+
 @media (min-width: 760px) {
   .toast {
     bottom: 24px;
@@ -1264,9 +1280,15 @@ details.disclose[open] > summary svg {
 @media (prefers-reduced-motion: reduce) {
   .btn:active,
   .name-btn:active,
-  .tabbar a:active svg,
-  details.disclose[open] > summary svg {
+  .tabbar a:active svg {
     transform: none;
+  }
+  /* The chevron still shows open or closed, it just snaps. */
+  details.disclose > summary svg {
+    transition: none;
+  }
+  .toast.is-leaving {
+    transform: translateX(-50%);
   }
   @starting-style {
     .toast {
