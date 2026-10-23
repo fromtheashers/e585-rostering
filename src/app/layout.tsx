@@ -5,6 +5,7 @@ import "@fontsource/instrument-sans/600.css";
 import "@fontsource/instrument-serif/400.css";
 import "@fontsource/instrument-serif/400-italic.css";
 import "./globals.css";
+import { TouchActive } from "@/components/client";
 
 export const metadata: Metadata = {
   title: { default: "E585 Rostering", template: "%s · E585 Rostering" },
@@ -26,7 +27,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en-GB">
-      <body>{children}</body>
+      <body>
+        <TouchActive />
+        {children}
+      </body>
     </html>
   );
 }

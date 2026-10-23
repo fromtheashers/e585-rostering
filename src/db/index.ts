@@ -11,7 +11,14 @@ function pool() {
   if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL is not set. Add your Neon connection string to the environment.");
   }
-  globalThis.__e585Pool ??= new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 5 });
+  globalThis.__e585Pool ??= new pg.Pool({
+    connectionString: process.env.DATABASE_URL,
+    max: 5,
+    // Opening a fresh TLS connection to Neon costs several round trips, so keep idle ones
+    // around for five minutes (pg's default drops them after ten seconds).
+    idleTimeoutMillis: 5 * 60_000,
+    keepAlive: true,
+  });
   return globalThis.__e585Pool;
 }
 

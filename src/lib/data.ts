@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { and, asc, desc, eq, gte, inArray, lt, ne } from "drizzle-orm";
@@ -17,23 +18,24 @@ export async function firstGroup(): Promise<Group | null> {
   return rows[0] ?? null;
 }
 
-export async function groupByToken(token: string): Promise<Group | null> {
+// cache() lets the layout and the page share one lookup per request instead of each asking the database.
+export const groupByToken = cache(async (token: string): Promise<Group | null> => {
   const rows = await db().select().from(groups).where(eq(groups.linkToken, token)).limit(1);
   return rows[0] ?? null;
-}
+});
 
 export async function isOrganiser(group: Group): Promise<boolean> {
   const value = (await cookies()).get(ORGANISER_COOKIE)?.value;
   return !!value && signatureMatches(value, organiserSignature(group.id, group.pinHash));
 }
 
-export async function currentPerson(): Promise<Person | null> {
+export const currentPerson = cache(async (): Promise<Person | null> => {
   const raw = (await cookies()).get(PERSON_COOKIE)?.value;
   const id = Number(raw);
   if (!raw || !Number.isInteger(id)) return null;
   const rows = await db().select().from(people).where(and(eq(people.id, id), eq(people.active, true))).limit(1);
   return rows[0] ?? null;
-}
+});
 
 export interface Ctx {
   group: Group;
@@ -44,12 +46,13 @@ export interface Ctx {
 }
 
 /** Loads the group for a link, or shows Not Found so a wrong link reveals nothing. */
-export async function context(token: string): Promise<Ctx> {
-  const group = await groupByToken(token);
+export const context = cache(async (token: string): Promise<Ctx> => {
+  // The group and the person don't depend on each other, so fetch both in one round trip.
+  const [group, me] = await Promise.all([groupByToken(token), currentPerson()]);
   if (!group) notFound();
-  const [me, organiser] = await Promise.all([currentPerson(), isOrganiser(group)]);
+  const organiser = await isOrganiser(group);
   return { group, token, me, organiser, today: todayIn(group.timezone) };
-}
+});
 
 export async function activePeople(): Promise<Person[]> {
   return db().select().from(people).where(eq(people.active, true)).orderBy(asc(people.name));

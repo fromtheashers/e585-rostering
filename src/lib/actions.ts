@@ -3,6 +3,7 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { and, asc, eq, gte, inArray, max } from "drizzle-orm";
 import { db, schema } from "@/db";
 import type { AvailabilityStatus, Group, Person, PreferenceLevel } from "@/db/schema";
@@ -46,10 +47,9 @@ const LEVELS: PreferenceLevel[] = ["love", "happy", "rather_not"];
 
 async function load(form: FormData) {
   const token = str(form, "token");
-  const group = await groupByToken(token);
+  const [group, me] = await Promise.all([groupByToken(token), currentPerson()]);
   if (!group) throw new Error("This link is no longer valid.");
-  const [me, organiser] = await Promise.all([currentPerson(), isOrganiser(group)]);
-  return { group, token, me, organiser };
+  return { group, token, me, organiser: await isOrganiser(group) };
 }
 
 async function member(form: FormData) {
@@ -64,10 +64,13 @@ async function organiserOnly(form: FormData) {
   return c;
 }
 
+// The activity feed is written after the response is sent, so a tap never waits on it.
 async function log(actor: Person | null, organiser: boolean, message: string) {
-  await db()
-    .insert(activity)
-    .values({ actorPersonId: actor?.id ?? null, actorLabel: actor?.name ?? (organiser ? "Organiser" : "Someone"), message });
+  after(async () => {
+    await db()
+      .insert(activity)
+      .values({ actorPersonId: actor?.id ?? null, actorLabel: actor?.name ?? (organiser ? "Organiser" : "Someone"), message });
+  });
 }
 
 function refresh(token: string) {
@@ -75,8 +78,10 @@ function refresh(token: string) {
 }
 
 async function names(meetingId: number, roleId: number) {
-  const [m] = await db().select().from(meetings).where(eq(meetings.id, meetingId));
-  const [r] = await db().select().from(roles).where(eq(roles.id, roleId));
+  const [[m], [r]] = await Promise.all([
+    db().select().from(meetings).where(eq(meetings.id, meetingId)),
+    db().select().from(roles).where(eq(roles.id, roleId)),
+  ]);
   return { date: m ? shortDate(m.date) : "a meeting", role: r?.name ?? "a role", meeting: m };
 }
 
@@ -170,12 +175,14 @@ export async function takeRole(form: FormData) {
     return;
   }
   if (existing) await db().delete(assignments).where(eq(assignments.id, existing.id));
-  await db().insert(assignments).values({ meetingId, roleId, personId: me.id, status: "confirmed", source: "self" });
-  await db()
-    .insert(availability)
-    .values({ personId: me.id, meetingId, status: "yes" })
-    .onConflictDoUpdate({ target: [availability.personId, availability.meetingId], set: { status: "yes" } });
-  const n = await names(meetingId, roleId);
+  const [, , n] = await Promise.all([
+    db().insert(assignments).values({ meetingId, roleId, personId: me.id, status: "confirmed", source: "self" }),
+    db()
+      .insert(availability)
+      .values({ personId: me.id, meetingId, status: "yes" })
+      .onConflictDoUpdate({ target: [availability.personId, availability.meetingId], set: { status: "yes" } }),
+    names(meetingId, roleId),
+  ]);
   await log(me, organiser, `took ${n.role} for ${n.date}`);
   refresh(token);
 }

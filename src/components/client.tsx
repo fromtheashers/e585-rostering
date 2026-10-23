@@ -314,7 +314,6 @@ function AutoSelectInner({
       defaultValue={value}
       aria-label={label}
       aria-busy={pending}
-      disabled={pending}
       onChange={onPick}
     >
       {options.map((o) => (
@@ -324,4 +323,17 @@ function AutoSelectInner({
       ))}
     </select>
   );
+}
+
+/**
+ * iOS Safari only shows :active styles once the page has a touch listener,
+ * so without this the press scale on buttons never appears on iPhones.
+ */
+export function TouchActive() {
+  useEffect(() => {
+    const noop = () => {};
+    document.addEventListener("touchstart", noop, { passive: true });
+    return () => document.removeEventListener("touchstart", noop);
+  }, []);
+  return null;
 }
