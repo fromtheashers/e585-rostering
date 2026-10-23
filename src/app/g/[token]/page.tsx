@@ -5,8 +5,8 @@ import { memberContext } from "@/lib/guard";
 import { takeRole } from "@/lib/actions";
 import { greetingFor, myRoles, panesFor, setsFor } from "@/lib/roster";
 import { longDate, prettyTime, relativeFriday, shortDate } from "@/lib/dates";
-import { Hidden, MiniPanes, StatusPill, Window, openCount } from "@/components/ui";
-import { SubmitButton } from "@/components/client";
+import { Hidden, MiniPanes, StatusPill, Window, openCount, takeKey } from "@/components/ui";
+import { SaveForm } from "@/components/optimistic";
 import { SongSets } from "@/components/songs";
 
 export default async function Home({ params }: { params: Promise<{ token: string }> }) {
@@ -68,13 +68,15 @@ export default async function Home({ params }: { params: Promise<{ token: string
               panes={panes}
               meId={me.id}
               href={(roleId) => `${href}#role-${roleId}`}
+              meetingId={next.id}
+              me={me}
               openAction={(p) => (
-                <form action={takeRole}>
+                <SaveForm action={takeRole} keys={[takeKey(next.id, p.roleId)]}>
                   <Hidden values={{ token, meetingId: next.id, roleId: p.roleId }} />
-                  <SubmitButton className={`btn sm${p.required ? " primary" : ""}`} pending="Taking…">
+                  <button type="submit" className={`btn sm${p.required ? " primary" : ""}`}>
                     {p.required ? "Take it" : "I'll do it"}
-                  </SubmitButton>
-                </form>
+                  </button>
+                </SaveForm>
               )}
             />
           </section>

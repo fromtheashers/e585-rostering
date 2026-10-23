@@ -5,7 +5,8 @@ import { setMeeting } from "@/lib/actions";
 import { myRoles, panesFor } from "@/lib/roster";
 import { addMonths, fridaysInMonth, monthKey, monthName, prettyTime } from "@/lib/dates";
 import { Hidden, MiniPanes, StatusPill } from "@/components/ui";
-import { ConfirmButton, SubmitButton } from "@/components/client";
+import { ConfirmButton } from "@/components/client";
+import { Pending, SaveForm } from "@/components/optimistic";
 
 export const metadata = { title: "Calendar" };
 
@@ -77,12 +78,33 @@ export default async function CalendarPage({
                 const openSongs = meeting ? songs.filter((s) => s.meetingId === meeting.id && !s.leaderPersonId).length : 0;
                 const filled = assignments.filter((a) => a.meetingId === meeting?.id).length + songs.filter((s) => s.meetingId === meeting?.id).length;
                 const day = d.slice(8).replace(/^0/, "");
-                return (
-                  <div key={d} className={`friday ${meeting ? "on" : "off"}${past ? " past" : ""}`}>
-                    <span className="daybox num" aria-hidden>
-                      <b>{day}</b>
-                      <span>Fri</span>
+                const daybox = (
+                  <span className="daybox num" aria-hidden>
+                    <b>{day}</b>
+                    <span>Fri</span>
+                  </span>
+                );
+                // What the row turns into the moment the organiser taps Add or Call off.
+                const flipped = meeting ? (
+                  <div className={`friday off${past ? " past" : ""}`}>
+                    {daybox}
+                    <span className="row-main">
+                      <strong>No meeting</strong>
                     </span>
+                  </div>
+                ) : (
+                  <div className={`friday on${past ? " past" : ""}`}>
+                    {daybox}
+                    <span className="row-main">
+                      <strong>Meeting · {prettyTime(group.startTime)}</strong>
+                      <span className="row-sub">Added</span>
+                    </span>
+                  </div>
+                );
+                return (
+                  <Pending key={d} on={`meeting:${d}`} show={flipped}>
+                  <div className={`friday ${meeting ? "on" : "off"}${past ? " past" : ""}`}>
+                    {daybox}
                     {meeting ? (
                       <Link href={`${base}/m/${d}`} className="row-main row-link">
                         <strong>
@@ -107,7 +129,7 @@ export default async function CalendarPage({
                         </>
                       ) : null}
                       {organiser && !past ? (
-                        <form action={setMeeting}>
+                        <SaveForm action={setMeeting} keys={[`meeting:${d}`]}>
                           <Hidden values={{ token, date: d, on: meeting ? "0" : "1" }} />
                           {meeting ? (
                             filled > 0 ? (
@@ -115,17 +137,20 @@ export default async function CalendarPage({
                                 Call off
                               </ConfirmButton>
                             ) : (
-                              <SubmitButton className="btn sm ghost">Call off</SubmitButton>
+                              <button type="submit" className="btn sm ghost">
+                                Call off
+                              </button>
                             )
                           ) : (
-                            <SubmitButton className="btn sm" pending="Adding…">
+                            <button type="submit" className="btn sm">
                               Add
-                            </SubmitButton>
+                            </button>
                           )}
-                        </form>
+                        </SaveForm>
                       ) : null}
                     </span>
                   </div>
+                  </Pending>
                 );
               })}
             </div>
