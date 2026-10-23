@@ -1,7 +1,8 @@
-import type { CSSProperties, ReactNode } from "react";
+import { Fragment, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
 import type { Person } from "@/db/schema";
 import { JEWELS, firstName, initials, jewel } from "@/lib/palette";
+import { Pending } from "./optimistic";
 
 export function jewelStyle(hue: number): CSSProperties {
   return { "--jewel": jewel(hue).value } as CSSProperties;
@@ -52,51 +53,76 @@ export interface PaneData {
   suggested?: boolean;
 }
 
-/** The roster for one Friday, drawn as a leaded window. Filled slots are panes in the person's colour. */
+type Who = Pick<Person, "id" | "name" | "hue">;
+
+function FilledPane({ pane, person, mine, href }: { pane: PaneData; person: Who; mine: boolean; href: string }) {
+  return (
+    <Link role="listitem" href={href} className="pane" style={jewelStyle(person.hue)} aria-label={`${pane.roleName}: ${mine ? "you" : person.name}`}>
+      <span className="pane-foot">
+        <span className="pane-role">{pane.roleName}</span>
+        {mine ? <span className="pane-you">You</span> : null}
+      </span>
+      <span className="pane-name">{firstName(person.name)}</span>
+    </Link>
+  );
+}
+
+function OpenPane({ pane, children }: { pane: PaneData; children?: ReactNode }) {
+  return (
+    <div role="listitem" className={`pane ${pane.required ? "open" : "optional"}`}>
+      <span className="pane-role">
+        {pane.roleName}
+        {pane.required ? "" : " · optional"}
+      </span>
+      <span className="pane-name">{pane.required ? "Needs someone" : "Nobody yet"}</span>
+      {children ? <span className="pane-foot">{children}</span> : null}
+    </div>
+  );
+}
+
+/** Save keys shared by every control that takes or frees a role, so they all change together. */
+export const takeKey = (meetingId: number, roleId: number) => `take:${meetingId}:${roleId}`;
+export const dropKey = (meetingId: number, roleId: number) => `drop:${meetingId}:${roleId}`;
+
+/**
+ * The roster for one Friday, drawn as a leaded window. Filled slots are panes in the person's colour.
+ * Given `meetingId` and `me`, a pane fills with you the moment you take it and empties the moment you drop it.
+ */
 export function Window({
   panes,
   meId,
   href,
   openAction,
   label,
+  meetingId,
+  me,
 }: {
   panes: PaneData[];
   meId: number | null;
   href: (roleId: number) => string;
   openAction?: (pane: PaneData) => ReactNode;
   label: string;
+  meetingId?: number;
+  me?: Who;
 }) {
   return (
     <div className="window" style={{ "--n": panes.length } as CSSProperties} role="list" aria-label={label}>
       {panes.map((p) => {
         if (p.person && !p.suggested) {
-          const mine = p.person.id === meId;
+          const filled = <FilledPane pane={p} person={p.person} mine={p.person.id === meId} href={href(p.roleId)} />;
+          if (meetingId === undefined) return <Fragment key={p.roleId}>{filled}</Fragment>;
           return (
-            <Link
-              key={p.roleId}
-              role="listitem"
-              href={href(p.roleId)}
-              className="pane"
-              style={jewelStyle(p.person.hue)}
-              aria-label={`${p.roleName}: ${mine ? "you" : p.person.name}`}
-            >
-              <span className="pane-foot">
-                <span className="pane-role">{p.roleName}</span>
-                {mine ? <span className="pane-you">You</span> : null}
-              </span>
-              <span className="pane-name">{firstName(p.person.name)}</span>
-            </Link>
+            <Pending key={p.roleId} on={dropKey(meetingId, p.roleId)} show={<OpenPane pane={p} />}>
+              {filled}
+            </Pending>
           );
         }
+        const open = <OpenPane pane={p}>{openAction?.(p)}</OpenPane>;
+        if (meetingId === undefined || !me) return <Fragment key={p.roleId}>{open}</Fragment>;
         return (
-          <div key={p.roleId} role="listitem" className={`pane ${p.required ? "open" : "optional"}`}>
-            <span className="pane-role">
-              {p.roleName}
-              {p.required ? "" : " · optional"}
-            </span>
-            <span className="pane-name">{p.required ? "Needs someone" : "Nobody yet"}</span>
-            {openAction ? <span className="pane-foot">{openAction(p)}</span> : null}
-          </div>
+          <Pending key={p.roleId} on={takeKey(meetingId, p.roleId)} show={<FilledPane pane={p} person={me} mine href={href(p.roleId)} />}>
+            {open}
+          </Pending>
         );
       })}
     </div>

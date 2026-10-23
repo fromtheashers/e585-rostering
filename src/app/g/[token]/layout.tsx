@@ -2,6 +2,7 @@ import Link from "next/link";
 import { context } from "@/lib/data";
 import { Avatar, Mark } from "@/components/ui";
 import { TabBar, TabsInline } from "@/components/client";
+import { SaveRoot } from "@/components/optimistic";
 import { firstName } from "@/lib/palette";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +19,7 @@ export default async function GroupLayout({
   const nav = !!me || organiser;
   const base = `/g/${token}`;
   return (
-    <>
+    <SaveRoot>
       <header className="topbar">
         <div className="shell topbar-inner">
           <Link href={base} className="brand">
@@ -36,6 +37,6 @@ export default async function GroupLayout({
       </header>
       {children}
       {nav ? <TabBar base={base} /> : null}
-    </>
+    </SaveRoot>
   );
 }

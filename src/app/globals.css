@@ -1353,3 +1353,8 @@ details.disclose[open] > summary svg {
     }
   }
 }
+
+/* A song that's still saving sits in the list, a little quieter until it lands. */
+.song.is-draft {
+  opacity: 0.6;
+}

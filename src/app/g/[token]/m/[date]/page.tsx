@@ -19,8 +19,10 @@ import { assignRole, dropRole, setAvailability, takeRole } from "@/lib/actions";
 import { coverText, panesFor, setsFor } from "@/lib/roster";
 import { longDate, prettyTime, relativeFriday } from "@/lib/dates";
 import { firstName } from "@/lib/palette";
-import { Avatar, Hidden, Window } from "@/components/ui";
-import { AutoSeg, ConfirmButton, CopyButton, SubmitButton } from "@/components/client";
+import { Avatar, Hidden, Window, dropKey, takeKey, type PaneData } from "@/components/ui";
+import { AutoSeg, AutoSelect, ConfirmButton, CopyButton } from "@/components/client";
+import { Pending, SaveForm } from "@/components/optimistic";
+import type { Person } from "@/db/schema";
 import { SongSets } from "@/components/songs";
 import { headers } from "next/headers";
 
@@ -77,16 +79,9 @@ export default async function MeetingPage({ params }: { params: Promise<{ token:
             panes={panes}
             meId={me.id}
             href={(roleId) => `#role-${roleId}`}
-            openAction={(p) =>
-              past ? null : (
-                <form action={takeRole}>
-                  <Hidden values={{ token, meetingId: meeting.id, roleId: p.roleId }} />
-                  <SubmitButton className={`btn sm${p.required ? " primary" : ""}`} pending="Taking…">
-                    {p.required ? "Take it" : "I'll do it"}
-                  </SubmitButton>
-                </form>
-              )
-            }
+            meetingId={meeting.id}
+            me={me}
+            openAction={(p) => (past ? null : <TakeButton token={token} meetingId={meeting.id} pane={p} />)}
           />
 
           <section aria-labelledby="roles-h">
@@ -98,6 +93,7 @@ export default async function MeetingPage({ params }: { params: Promise<{ token:
                 const a = assignments.find((x) => x.roleId === p.roleId);
                 const isMine = p.person?.id === me.id && !p.suggested;
                 const open = !p.person || p.suggested;
+                const nobody = p.required ? "Needs someone" : "Optional · nobody yet";
                 const candidates = open
                   ? people
                       .map((person) => ({
@@ -117,80 +113,42 @@ export default async function MeetingPage({ params }: { params: Promise<{ token:
                   : [];
                 return (
                   <li key={p.roleId} id={`role-${p.roleId}`} className="row" style={{ display: "block", scrollMarginTop: 80 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      {p.person && !p.suggested ? <Avatar person={p.person} /> : <span className="avatar" style={{ background: "transparent", border: "1px dashed var(--ink)" }} aria-hidden />}
-                      <span className="row-main">
-                        <strong>{p.roleName}</strong>
-                        <span className="row-sub">
-                          {p.person && !p.suggested
-                            ? isMine
-                              ? "You"
-                              : p.person.name
-                            : p.required
-                              ? p.suggested
-                                ? `Needs someone (auto-fill pencilled in ${firstName(p.person!.name)})`
-                                : "Needs someone"
-                              : "Optional · nobody yet"}
-                        </span>
-                      </span>
+                    <Pending on={takeKey(meeting.id, p.roleId)} show={<RoleHead roleName={p.roleName} person={me} sub="You" />}>
+                    <Pending on={dropKey(meeting.id, p.roleId)} show={<RoleHead roleName={p.roleName} person={null} sub={nobody} />}>
+                    <RoleHead
+                      roleName={p.roleName}
+                      person={open ? null : p.person}
+                      sub={
+                        !open
+                          ? isMine
+                            ? "You"
+                            : p.person!.name
+                          : p.suggested
+                            ? `${nobody} (auto-fill pencilled in ${firstName(p.person!.name)})`
+                            : nobody
+                      }
+                    >
                       {!past && isMine && a ? (
-                        <form action={dropRole}>
+                        <SaveForm action={dropRole} keys={[dropKey(meeting.id, p.roleId)]}>
                           <Hidden values={{ token, assignmentId: a.id }} />
                           <ConfirmButton question="Free this slot?" confirm="Yes, I can't make it">
                             I can&rsquo;t make it
                           </ConfirmButton>
-                        </form>
+                        </SaveForm>
                       ) : null}
-                      {!past && open ? (
-                        <form action={takeRole}>
-                          <Hidden values={{ token, meetingId: meeting.id, roleId: p.roleId }} />
-                          <SubmitButton className={`btn sm${p.required ? " primary" : ""}`} pending="Taking…">
-                            {p.required ? "Take it" : "I'll do it"}
-                          </SubmitButton>
-                        </form>
-                      ) : null}
-                    </div>
+                      {!past && open ? <TakeButton token={token} meetingId={meeting.id} pane={p} /> : null}
+                    </RoleHead>
 
                     {organiser && !past ? (
                       p.person && !p.suggested ? (
                         <details className="disclose" style={{ marginTop: 4 }}>
                           <summary className="small muted">Change who&rsquo;s on {p.roleName}</summary>
-                          <form action={assignRole} className="form-row" style={{ gridTemplateColumns: "minmax(0,1fr) auto" }}>
-                        <Hidden values={{ token, meetingId: meeting.id, roleId: p.roleId }} />
-                        <label className="visually-hidden" htmlFor={`assign-${p.roleId}`}>
-                          Put someone on {p.roleName}
-                        </label>
-                        <select className="select" id={`assign-${p.roleId}`} name="personId" defaultValue={p.person && !p.suggested ? p.person.id : ""}>
-                          <option value="">Nobody</option>
-                          {people.map((person) => (
-                            <option key={person.id} value={person.id}>
-                              {person.name} · {STATUS_LABEL[statusOf(avail, person, meeting.id).status]}
-                            </option>
-                          ))}
-                        </select>
-                        <SubmitButton className="btn sm ghost" pending="Saving…">
-                          Set
-                        </SubmitButton>
-                      </form>
+                          <AssignSelect token={token} meetingId={meeting.id} pane={p} people={people} avail={avail} />
                         </details>
                       ) : (
-                        <form action={assignRole} className="form-row" style={{ marginTop: 10, gridTemplateColumns: "minmax(0,1fr) auto" }}>
-                        <Hidden values={{ token, meetingId: meeting.id, roleId: p.roleId }} />
-                        <label className="visually-hidden" htmlFor={`assign-${p.roleId}`}>
-                          Put someone on {p.roleName}
-                        </label>
-                        <select className="select" id={`assign-${p.roleId}`} name="personId" defaultValue={p.person && !p.suggested ? p.person.id : ""}>
-                          <option value="">Nobody</option>
-                          {people.map((person) => (
-                            <option key={person.id} value={person.id}>
-                              {person.name} · {STATUS_LABEL[statusOf(avail, person, meeting.id).status]}
-                            </option>
-                          ))}
-                        </select>
-                        <SubmitButton className="btn sm ghost" pending="Saving…">
-                          Set
-                        </SubmitButton>
-                      </form>
+                        <div style={{ marginTop: 10 }}>
+                          <AssignSelect token={token} meetingId={meeting.id} pane={p} people={people} avail={avail} />
+                        </div>
                       )
                     ) : null}
 
@@ -222,6 +180,8 @@ export default async function MeetingPage({ params }: { params: Promise<{ token:
                         </div>
                       </div>
                     ) : null}
+                    </Pending>
+                    </Pending>
                   </li>
                 );
               })}
@@ -273,5 +233,72 @@ export default async function MeetingPage({ params }: { params: Promise<{ token:
         </aside>
       </div>
     </main>
+  );
+}
+
+function TakeButton({ token, meetingId, pane }: { token: string; meetingId: number; pane: PaneData }) {
+  return (
+    <SaveForm action={takeRole} keys={[takeKey(meetingId, pane.roleId)]}>
+      <Hidden values={{ token, meetingId, roleId: pane.roleId }} />
+      <button type="submit" className={`btn sm${pane.required ? " primary" : ""}`}>
+        {pane.required ? "Take it" : "I'll do it"}
+      </button>
+    </SaveForm>
+  );
+}
+
+function RoleHead({
+  roleName,
+  person,
+  sub,
+  children,
+}: {
+  roleName: string;
+  person: Pick<Person, "name" | "hue"> | null;
+  sub: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      {person ? <Avatar person={person} /> : <span className="avatar" style={{ background: "transparent", border: "1px dashed var(--ink)" }} aria-hidden />}
+      <span className="row-main">
+        <strong>{roleName}</strong>
+        <span className="row-sub">{sub}</span>
+      </span>
+      {children}
+    </div>
+  );
+}
+
+/** The organiser's picker: choosing a name saves it, no extra button. */
+function AssignSelect({
+  token,
+  meetingId,
+  pane,
+  people,
+  avail,
+}: {
+  token: string;
+  meetingId: number;
+  pane: PaneData;
+  people: Person[];
+  avail: Parameters<typeof statusOf>[0];
+}) {
+  return (
+    <AutoSelect
+      action={assignRole}
+      hidden={{ token, meetingId, roleId: pane.roleId }}
+      name="personId"
+      value={pane.person && !pane.suggested ? String(pane.person.id) : ""}
+      className="select"
+      label={`Put someone on ${pane.roleName}`}
+      options={[
+        { value: "", label: "Nobody" },
+        ...people.map((person) => ({
+          value: String(person.id),
+          label: `${person.name} · ${STATUS_LABEL[statusOf(avail, person, meetingId).status]}`,
+        })),
+      ]}
+    />
   );
 }

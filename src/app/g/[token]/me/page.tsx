@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { activeRoles, assignmentsFor, availabilityFor, levelOf, preferencesFor, statusOf, upcomingMeetings } from "@/lib/data";
+import { AutoSelect } from "@/components/client";
 import { memberContext } from "@/lib/guard";
 import { forgetPerson, setAvailability, setDefaultAvailability, setMaxPerMonth, setPreference } from "@/lib/actions";
 import { shortDate } from "@/lib/dates";
@@ -126,24 +127,24 @@ export default async function MePage({ params }: { params: Promise<{ token: stri
             ))}
           </ul>
         </div>
-        <form action={setMaxPerMonth} className="panel" style={{ display: "flex", alignItems: "end", gap: 12, flexWrap: "wrap" }}>
-          <Hidden values={{ token }} />
-          <div className="field" style={{ flex: 1, minWidth: 200 }}>
+        <div className="panel">
+          <div className="field">
             <label htmlFor="max">Most times a month you&rsquo;d like to serve</label>
-            <span className="hint">Auto-fill won&rsquo;t put you on more than this.</span>
-            <select className="select" id="max" name="maxPerMonth" defaultValue={me.maxPerMonth ?? ""}>
-              <option value="">No limit</option>
-              {[1, 2, 3, 4].map((n) => (
-                <option key={n} value={n}>
-                  {n} {n === 1 ? "time" : "times"}
-                </option>
-              ))}
-            </select>
+            <span className="hint">Auto-fill won&rsquo;t put you on more than this. Saves when you pick.</span>
+            <AutoSelect
+              id="max"
+              className="select"
+              action={setMaxPerMonth}
+              hidden={{ token }}
+              name="maxPerMonth"
+              value={me.maxPerMonth ? String(me.maxPerMonth) : ""}
+              options={[
+                { value: "", label: "No limit" },
+                ...[1, 2, 3, 4].map((n) => ({ value: String(n), label: `${n} ${n === 1 ? "time" : "times"}` })),
+              ]}
+            />
           </div>
-          <SubmitButton className="btn" pending="Saving…">
-            Save
-          </SubmitButton>
-        </form>
+        </div>
       </section>
     </main>
   );

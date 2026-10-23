@@ -5,6 +5,7 @@ import { addOpenSlot, addSong, claimSong, moveSong, releaseSong, removeSong, upd
 import { firstName } from "@/lib/palette";
 import { Avatar, Hidden } from "./ui";
 import { StateForm, SubmitButton } from "./client";
+import { AddSongForm, DraftRows, Pending, SaveForm, SongDrafts, UnlessDrafts } from "./optimistic";
 
 export const KEY_OPTIONS = ["C", "C#", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B", "Cm", "C#m", "Dm", "Ebm", "Em", "Fm", "F#m", "Gm", "G#m", "Am", "Bbm", "Bm"];
 
@@ -14,7 +15,53 @@ interface SetData {
   songs: Song[];
 }
 
-function SongRow({
+/** The open-slot look, used for real open slots and for ones that are still saving. */
+function OpenSlot({ children }: { children?: React.ReactNode }) {
+  return (
+    <div className="slot-open">
+      <div className="row-main">
+        <strong>Open song slot</strong>
+        <span className="row-sub">Anyone can lead this one.</span>
+      </div>
+      {children ? <div className="actions">{children}</div> : null}
+    </div>
+  );
+}
+
+function SongLine({ song, leaderName, mine }: { song: Pick<Song, "title" | "artist" | "songKey">; leaderName: string; mine: boolean }) {
+  const title = song.title || (mine ? "Add your song" : "Song to be picked");
+  return (
+    <div className="row-main">
+      <span className="song-title" style={song.title ? undefined : { color: "var(--muted)", fontWeight: 500 }}>
+        {title}
+      </span>
+      <span className="song-meta">{[song.artist, `led by ${mine ? "you" : firstName(leaderName)}`].filter(Boolean).join(" · ")}</span>
+    </div>
+  );
+}
+
+function KeyBadge({ songKey }: { songKey: string }) {
+  return songKey ? (
+    <span className="key" aria-label={`Key of ${songKey}`}>
+      {songKey}
+    </span>
+  ) : (
+    <span className="key muted" aria-label="No key yet">
+      –
+    </span>
+  );
+}
+
+function SongRow(props: Parameters<typeof SongRowBody>[0]) {
+  // A removed song disappears at once.
+  return (
+    <Pending on={`remove:${props.song.id}`} show={null}>
+      <SongRowBody {...props} />
+    </Pending>
+  );
+}
+
+function SongRowBody({
   song,
   people,
   token,
@@ -37,50 +84,39 @@ function SongRow({
   const mine = song.leaderPersonId === meId;
 
   if (!leader) {
-    return (
-      <div className="slot-open">
-        <div className="row-main">
-          <strong>Open song slot</strong>
-          <span className="row-sub">Anyone can lead this one.</span>
-        </div>
-        <div className="actions">
-          <form action={claimSong}>
-            <Hidden values={{ token, songId: song.id }} />
-            <SubmitButton className="btn sm primary" pending="Taking…">
-              I&rsquo;ll lead it
-            </SubmitButton>
-          </form>
-          {canEdit && !compact ? (
-            <form action={removeSong}>
-              <Hidden values={{ token, songId: song.id }} />
-              <SubmitButton className="btn sm ghost">Remove</SubmitButton>
-            </form>
-          ) : null}
-        </div>
+    const claimed = (
+      <div className="song">
+        <SongLine song={song} leaderName="" mine />
+        <KeyBadge songKey={song.songKey} />
       </div>
+    );
+    return (
+      <Pending on={`claim:${song.id}`} show={claimed}>
+        <OpenSlot>
+          <SaveForm action={claimSong} keys={[`claim:${song.id}`]}>
+            <Hidden values={{ token, songId: song.id }} />
+            <button type="submit" className="btn sm primary">
+              I&rsquo;ll lead it
+            </button>
+          </SaveForm>
+          {canEdit && !compact ? (
+            <SaveForm action={removeSong} keys={[`remove:${song.id}`]}>
+              <Hidden values={{ token, songId: song.id }} />
+              <button type="submit" className="btn sm ghost">
+                Remove
+              </button>
+            </SaveForm>
+          ) : null}
+        </OpenSlot>
+      </Pending>
     );
   }
 
-  const title = song.title || (mine ? "Add your song" : "Song to be picked");
   return (
+    <Pending on={`release:${song.id}`} show={<OpenSlot />}>
     <div className="song">
-      <div className="row-main">
-        <span className="song-title" style={song.title ? undefined : { color: "var(--muted)", fontWeight: 500 }}>
-          {title}
-        </span>
-        <span className="song-meta">
-          {[song.artist, `led by ${mine ? "you" : firstName(leader.name)}`].filter(Boolean).join(" · ")}
-        </span>
-      </div>
-      {song.songKey ? (
-        <span className="key" aria-label={`Key of ${song.songKey}`}>
-          {song.songKey}
-        </span>
-      ) : (
-        <span className="key muted" aria-label="No key yet">
-          –
-        </span>
-      )}
+      <SongLine song={song} leaderName={leader.name} mine={mine} />
+      <KeyBadge songKey={song.songKey} />
       {!compact && (mine || canEdit) ? (
         <details className="disclose" style={{ gridColumn: "1 / -1" }}>
           <summary className="small muted">Edit</summary>
@@ -104,21 +140,26 @@ function SongRow({
                 </form>
               ) : null}
               {mine && !canEdit ? (
-                <form action={releaseSong}>
+                <SaveForm action={releaseSong} keys={[`release:${song.id}`]}>
                   <Hidden values={{ token, songId: song.id }} />
-                  <SubmitButton className="btn sm ghost">I can&rsquo;t lead this</SubmitButton>
-                </form>
+                  <button type="submit" className="btn sm ghost">
+                    I can&rsquo;t lead this
+                  </button>
+                </SaveForm>
               ) : (
-                <form action={removeSong}>
+                <SaveForm action={removeSong} keys={[`remove:${song.id}`]}>
                   <Hidden values={{ token, songId: song.id }} />
-                  <SubmitButton className="btn sm danger">Remove song</SubmitButton>
-                </form>
+                  <button type="submit" className="btn sm danger">
+                    Remove song
+                  </button>
+                </SaveForm>
               )}
             </div>
           </div>
         </details>
       ) : null}
     </div>
+    </Pending>
   );
 }
 
@@ -135,8 +176,10 @@ function SongFields({
   people: Person[];
 }) {
   const id = song ? `s${song.id}` : `new${hidden.setRoleId}`;
+  // A new song shows in the list straight away; edits keep the usual Saving… then Saved.
+  const Form = song ? StateForm : AddSongForm;
   return (
-    <StateForm action={action} className="stack" resetOnOk={!song}>
+    <Form action={action} className="stack">
       <Hidden values={hidden} />
       <div className="field">
         <label htmlFor={`${id}-title`}>Title</label>
@@ -160,11 +203,17 @@ function SongFields({
         </div>
       </div>
       <div>
-        <SubmitButton className="btn sm primary" pending="Saving…">
-          {submit}
-        </SubmitButton>
+        {song ? (
+          <SubmitButton className="btn sm primary" pending="Saving…">
+            {submit}
+          </SubmitButton>
+        ) : (
+          <button type="submit" className="btn sm primary">
+            {submit}
+          </button>
+        )}
       </div>
-    </StateForm>
+    </Form>
   );
 }
 
@@ -204,7 +253,8 @@ export function SongSets({
       {sets.map(({ role, leader, songs }) => {
         const canEdit = organiser || leader?.id === meId;
         return (
-          <section key={role.id} aria-labelledby={`set-${role.id}`}>
+          <SongDrafts key={role.id}>
+          <section aria-labelledby={`set-${role.id}`}>
             <div className="set-head">
               {leader ? <Avatar person={leader} /> : null}
               <h3 id={`set-${role.id}`}>
@@ -217,9 +267,13 @@ export function SongSets({
             </div>
             <div>
               {songs.length === 0 ? (
-                <p className="small muted" style={{ padding: "10px 0" }}>
-                  {canEdit ? "No songs yet. Add your first one below." : "No songs added yet."}
-                </p>
+                <UnlessDrafts>
+                  <Pending on={`slot:${meetingId}:${role.id}`} show={null}>
+                    <p className="small muted" style={{ padding: "10px 0" }}>
+                      {canEdit ? "No songs yet. Add your first one below." : "No songs added yet."}
+                    </p>
+                  </Pending>
+                </UnlessDrafts>
               ) : (
                 songs.map((s, i) => (
                   <SongRow
@@ -235,6 +289,8 @@ export function SongSets({
                   />
                 ))
               )}
+              <DraftRows />
+              <Pending on={`slot:${meetingId}:${role.id}`} show={<OpenSlot />} />
             </div>
             {compact ? (
               canEdit ? (
@@ -252,15 +308,16 @@ export function SongSets({
                     <SongFields action={addSong} hidden={{ token, meetingId, setRoleId: role.id }} submit="Add song" people={people} />
                   </details>
                 ) : null}
-                <form action={addOpenSlot}>
+                <SaveForm action={addOpenSlot} keys={[`slot:${meetingId}:${role.id}`]}>
                   <Hidden values={{ token, meetingId, setRoleId: role.id }} />
-                  <SubmitButton className="btn sm ghost" pending="Opening…">
+                  <button type="submit" className="btn sm ghost">
                     <Plus size={16} aria-hidden /> Open a song slot for someone else
-                  </SubmitButton>
-                </form>
+                  </button>
+                </SaveForm>
               </div>
             )}
           </section>
+          </SongDrafts>
         );
       })}
     </div>

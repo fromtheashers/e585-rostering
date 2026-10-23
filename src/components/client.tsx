@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { CalendarDays, Check, Copy, Home, Menu, UserRound } from "lucide-react";
 import type { FormState } from "@/lib/actions";
+import { formData, isRedirect, useSaver } from "./optimistic";
 
 export function SubmitButton({
   children,
@@ -21,7 +22,10 @@ export function SubmitButton({
   );
 }
 
-/** A Yes / Maybe / No style choice that saves as soon as it changes. */
+/**
+ * A Yes / Maybe / No style choice. The new answer shows the moment it's tapped and
+ * saves in the background; if the save fails it goes back and a toast says so.
+ */
 export function AutoSeg({
   action,
   name,
@@ -39,61 +43,55 @@ export function AutoSeg({
   label: string;
   wide?: boolean;
 }) {
-  const formRef = useRef<HTMLFormElement>(null);
-  const [current, setCurrent] = useState(value);
-  useEffect(() => setCurrent(value), [value]);
+  const [current, pick] = useBackgroundSave(action, name, value, hidden);
+  // The form only scopes the radio group, so arrow keys stay within this row. It never submits.
   return (
-    <form ref={formRef} action={action}>
-      {Object.entries(hidden).map(([k, v]) => (
-        <input key={k} type="hidden" name={k} value={v} />
-      ))}
-      <SegInner
-        name={name}
-        current={current}
-        options={options}
-        label={label}
-        wide={wide}
-        onPick={(v) => {
-          setCurrent(v);
-          requestAnimationFrame(() => formRef.current?.requestSubmit());
-        }}
-      />
+    <form onSubmit={(e) => e.preventDefault()}>
+      <div className={`seg${wide ? " wide" : ""}`} role="radiogroup" aria-label={label}>
+        {options.map((o) => (
+          <label key={o.value}>
+            <input type="radio" name={name} value={o.value} checked={current === o.value} onChange={() => pick(o.value)} />
+            {o.label}
+          </label>
+        ))}
+      </div>
     </form>
   );
 }
 
-function SegInner({
-  name,
-  current,
-  options,
-  label,
-  wide,
-  onPick,
-}: {
-  name: string;
-  current: string | null;
-  options: { value: string; label: string }[];
-  label: string;
-  wide?: boolean;
-  onPick: (v: string) => void;
-}) {
-  const { pending } = useFormStatus();
-  return (
-    <div className={`seg${wide ? " wide" : ""}`} role="radiogroup" aria-label={label} data-pending={pending}>
-      {options.map((o) => (
-        <label key={o.value}>
-          <input
-            type="radio"
-            name={name}
-            value={o.value}
-            checked={current === o.value}
-            onChange={() => onPick(o.value)}
-          />
-          {o.label}
-        </label>
-      ))}
-    </div>
-  );
+/**
+ * Keeps a control's value on screen while its save runs. Server props only take
+ * over again once nothing is saving, so a reply to an older tap can't undo a newer one.
+ */
+function useBackgroundSave<T extends string | null>(
+  action: (form: FormData) => Promise<void>,
+  name: string,
+  value: T,
+  hidden: Record<string, string | number>,
+) {
+  const { fail } = useSaver();
+  const [current, setCurrent] = useState<T>(value);
+  const saving = useRef(0);
+  useEffect(() => {
+    if (saving.current === 0) setCurrent(value);
+  }, [value]);
+  function pick(next: T) {
+    const before = current;
+    setCurrent(next);
+    saving.current++;
+    startTransition(async () => {
+      try {
+        await action(formData({ ...hidden, [name]: next ?? "" }));
+      } catch (e) {
+        if (isRedirect(e)) throw e;
+        setCurrent(before);
+        fail();
+      } finally {
+        saving.current--;
+      }
+    });
+  }
+  return [current, pick] as const;
 }
 
 /** A form for actions that report back (errors or a short confirmation). */
@@ -261,7 +259,7 @@ export function TimezoneInput() {
   return <input type="hidden" name="timezone" value={tz} />;
 }
 
-/** A select that saves as soon as it changes (used in the roster grid). */
+/** A select that saves as soon as it changes, showing the new choice straight away. */
 export function AutoSelect({
   action,
   hidden,
@@ -270,6 +268,7 @@ export function AutoSelect({
   options,
   className,
   label,
+  id,
 }: {
   action: (form: FormData) => Promise<void>;
   hidden: Record<string, string | number>;
@@ -277,45 +276,12 @@ export function AutoSelect({
   value: string;
   options: { value: string; label: string }[];
   className?: string;
-  label: string;
+  label?: string;
+  id?: string;
 }) {
-  const ref = useRef<HTMLFormElement>(null);
+  const [current, pick] = useBackgroundSave(action, name, value, hidden);
   return (
-    <form ref={ref} action={action}>
-      {Object.entries(hidden).map(([k, v]) => (
-        <input key={k} type="hidden" name={k} value={v} />
-      ))}
-      <AutoSelectInner name={name} value={value} options={options} className={className} label={label} onPick={() => ref.current?.requestSubmit()} />
-    </form>
-  );
-}
-
-function AutoSelectInner({
-  name,
-  value,
-  options,
-  className,
-  label,
-  onPick,
-}: {
-  name: string;
-  value: string;
-  options: { value: string; label: string }[];
-  className?: string;
-  label: string;
-  onPick: () => void;
-}) {
-  const { pending } = useFormStatus();
-  return (
-    <select
-      key={value}
-      className={className}
-      name={name}
-      defaultValue={value}
-      aria-label={label}
-      aria-busy={pending}
-      onChange={onPick}
-    >
+    <select id={id} className={className} name={name} value={current} aria-label={label} onChange={(e) => pick(e.target.value)}>
       {options.map((o) => (
         <option key={o.value} value={o.value}>
           {o.label}
