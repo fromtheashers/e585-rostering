@@ -44,6 +44,8 @@ function workerDb(): Db {
   let instance = workerDbs.get(ctx);
   if (!instance) {
     const pool = new pg.Pool({ connectionString: env.HYPERDRIVE.connectionString, maxUses: 1 });
+    // Without a listener, a connection dropping after its query throws and fails the whole request.
+    pool.on("error", (e) => console.error(`database connection error: ${e.message}`));
     instance = drizzle(pool, { schema });
     workerDbs.set(ctx, instance);
   }
