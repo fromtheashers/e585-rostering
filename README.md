@@ -80,7 +80,7 @@ The new app must sign sign-ins with the same secret as the Render one, so both t
 6. Fill in the **Set up your application** page:
    - **Project name:** `cgroster`. It must match the `name` in `wrangler.jsonc`, or the build fails.
    - **Build command:** `npm run cf:build` (it updates the database tables, then builds the app).
-   - **Deploy command:** `npx wrangler deploy` (the build command already built the app; `opennextjs-cloudflare deploy` fails on Cloudflare's build machine because it looks for a local Hyperdrive database)
+   - **Deploy command:** `npx wrangler deploy` (it hands over to OpenNext's deploy, which needs the placeholder `localConnectionString` already in `wrangler.jsonc`)
    - **Path** (root directory): leave it as `/`.
 7. Click **Advanced settings** (below the commands), then under **Build variables** click **Add variable**:
    - **Variable name:** `DATABASE_URL`
