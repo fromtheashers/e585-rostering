@@ -20,7 +20,7 @@ import { coverText, panesFor, setsFor } from "@/lib/roster";
 import { longDate, prettyTime, relativeFriday } from "@/lib/dates";
 import { firstName } from "@/lib/palette";
 import { Avatar, Hidden, Window, dropKey, takeKey, type PaneData } from "@/components/ui";
-import { AutoSeg, AutoSelect, ConfirmButton, CopyButton } from "@/components/client";
+import { AutoSeg, AutoSelect, ConfirmButton, CopyButton, ShareButtons } from "@/components/client";
 import { Pending, SaveForm } from "@/components/optimistic";
 import type { Person } from "@/db/schema";
 import { SongSets } from "@/components/songs";
@@ -175,8 +175,9 @@ export default async function MeetingPage({ params }: { params: Promise<{ token:
                             ))}
                           </ul>
                         )}
-                        <div style={{ marginTop: 10 }}>
+                        <div className="actions" style={{ marginTop: 10 }}>
                           <CopyButton text={coverText({ roleName: p.roleName, date, link })} label='Copy a "can anyone cover?" message' />
+                          <ShareButtons text={coverText({ roleName: p.roleName, date, link })} />
                         </div>
                       </div>
                     ) : null}

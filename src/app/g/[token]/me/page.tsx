@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CalendarPlus } from "lucide-react";
 import { activeRoles, assignmentsFor, availabilityFor, levelOf, preferencesFor, statusOf, upcomingMeetings } from "@/lib/data";
 import { AutoSelect } from "@/components/client";
 import { memberContext } from "@/lib/guard";
@@ -8,6 +9,8 @@ import { Avatar, Hidden } from "@/components/ui";
 import { AutoSeg, StateForm, SubmitButton } from "@/components/client";
 
 export const metadata = { title: "Me" };
+
+const USUAL_LABEL = { yes: "Free", maybe: "Maybe", no: "Away" } as const;
 
 const YES_MAYBE_NO = [
   { value: "yes", label: "Yes" },
@@ -23,6 +26,7 @@ export default async function MePage({ params }: { params: Promise<{ token: stri
   const [meetings, roles, prefs] = await Promise.all([upcomingMeetings(today, 10), activeRoles(), preferencesFor(me.id)]);
   const ids = meetings.map((m) => m.id);
   const [avail, assignments] = await Promise.all([availabilityFor(ids), assignmentsFor(ids)]);
+  const servingSoon = assignments.some((a) => a.personId === me.id && a.status === "confirmed");
 
   return (
     <main className="shell page" style={{ maxWidth: 760 }}>
@@ -62,7 +66,7 @@ export default async function MePage({ params }: { params: Promise<{ token: stri
                     <Link href={`${base}/m/${m.date}`} className="row-main row-link">
                       <strong>{shortDate(m.date)}</strong>
                       <span className="row-sub">
-                        {serving.length ? `You: ${serving.join(", ")}` : s.explicit ? " " : "Not marked, using your usual"}
+                        {serving.length ? `You: ${serving.join(", ")}` : s.explicit ? " " : `Not marked, using your usual (${USUAL_LABEL[me.defaultAvailability]})`}
                       </span>
                     </Link>
                     <AutoSeg
@@ -79,6 +83,14 @@ export default async function MePage({ params }: { params: Promise<{ token: stri
             </ul>
           )}
         </div>
+        {servingSoon ? (
+          <div>
+            {/* A file download, so a plain link rather than client-side navigation. */}
+            <a className="btn sm ghost" href={`${base}/serving.ics`} download="e585-serving.ics">
+              <CalendarPlus size={16} aria-hidden /> Add my serving dates to my calendar
+            </a>
+          </div>
+        ) : null}
         <div className="panel" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
           <div className="row-main">
             <strong>Usually I&rsquo;m…</strong>
@@ -106,7 +118,7 @@ export default async function MePage({ params }: { params: Promise<{ token: stri
         <div className="panel flush">
           <ul className="row-list">
             {roles.map((r) => (
-              <li key={r.id} className="row" style={{ flexWrap: "wrap" }}>
+              <li key={r.id} className="row pick">
                 <span className="row-main">
                   <strong>{r.name}</strong>
                   <span className="row-sub">{r.description || (r.required ? "" : "Optional")}</span>

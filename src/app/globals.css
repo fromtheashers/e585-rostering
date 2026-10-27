@@ -179,6 +179,7 @@ summary {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  min-height: var(--tap);
   font-weight: 600;
   font-size: var(--fs-md);
   text-decoration: none;
@@ -223,6 +224,8 @@ summary {
   text-decoration: none;
   font-weight: 500;
   min-height: var(--tap);
+  min-width: var(--tap);
+  justify-content: flex-end;
 }
 
 .topbar-me .label {
@@ -356,6 +359,17 @@ main.page {
   font-weight: 500;
 }
 
+/* Small text links keep their size but get a 44px tap area. */
+.section-head a {
+  position: relative;
+}
+
+.section-head a::after {
+  content: "";
+  position: absolute;
+  inset: -13px -10px;
+}
+
 .muted {
   color: var(--muted);
 }
@@ -432,6 +446,8 @@ a.row {
 .row-link {
   text-decoration: none;
   border-radius: 8px;
+  min-height: var(--tap);
+  align-content: center;
 }
 
 .split {
@@ -517,9 +533,17 @@ a.row {
 }
 
 .btn.sm {
+  position: relative;
   min-height: 36px;
   padding: 0 14px;
   font-size: var(--fs-sm);
+}
+
+/* Small buttons look 36px tall but take taps across 44px. */
+.btn.sm::after {
+  content: "";
+  position: absolute;
+  inset: -4px 0;
 }
 
 .btn.block {
@@ -852,7 +876,7 @@ a.pane:focus-visible {
   align-items: center;
   justify-content: center;
   min-width: 52px;
-  height: 34px;
+  height: 38px;
   padding: 0 12px;
   border-radius: 999px;
   font-size: var(--fs-sm);
@@ -862,6 +886,13 @@ a.pane:focus-visible {
   transition:
     background-color 180ms var(--ease-out),
     color 180ms var(--ease-out);
+}
+
+/* Each choice takes taps across the full 44px height of the control, padding included. */
+.seg label::after {
+  content: "";
+  position: absolute;
+  inset: -3px -1px;
 }
 
 .seg input {
@@ -1095,6 +1126,12 @@ a.pane:focus-visible {
   white-space: nowrap;
 }
 
+.roster thead a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+}
+
 .roster tbody th {
   font-weight: 600;
   white-space: nowrap;
@@ -1105,7 +1142,7 @@ a.pane:focus-visible {
 }
 
 .roster .cell-select {
-  min-height: 38px;
+  min-height: var(--tap);
   font-size: 14px;
   padding: 0 8px;
   border-radius: 8px;
@@ -1359,4 +1396,15 @@ details.disclose[open] > summary svg {
 /* A song that's still saving sits in the list, a little quieter until it lands. */
 .song.is-draft {
   opacity: 0.6;
+}
+
+/* A row with a choice beside it: on a phone the choice drops below, so the description isn't squeezed. */
+.row.pick {
+  flex-wrap: wrap;
+  column-gap: 12px;
+  row-gap: 6px;
+}
+
+.row.pick > .row-main {
+  flex: 1 1 200px;
 }
