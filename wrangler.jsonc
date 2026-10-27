@@ -5,6 +5,8 @@
   "compatibility_date": "2026-10-01",
   // Node.js APIs the app and the pg driver use (crypto, net sockets, Buffer).
   "compatibility_flags": ["nodejs_compat"],
+  // Keep variables set in the Cloudflare dashboard; without this every deploy deletes plain-text ones.
+  "keep_vars": true,
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
