@@ -1,17 +1,45 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 
-export function hashPin(pin: string): string {
-  const salt = randomBytes(16).toString("hex");
-  const hash = scryptSync(pin, salt, 32).toString("hex");
-  return `${salt}:${hash}`;
+// PBKDF2 runs natively in WebCrypto on both Node and Workers. 100,000 rounds is the most
+// Workers allows.
+const ITERATIONS = 100_000;
+const PREFIX = `pbkdf2$${ITERATIONS}$`;
+
+async function pbkdf2(pin: string, salt: Uint8Array, iterations: number): Promise<Buffer> {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pin), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt: new Uint8Array(salt), iterations }, key, 256);
+  return Buffer.from(bits);
 }
 
-export function verifyPin(pin: string, stored: string): boolean {
-  const [salt, hash] = stored.split(":");
-  if (!salt || !hash) return false;
-  const attempt = scryptSync(pin, salt, 32);
-  const expected = Buffer.from(hash, "hex");
+/** Stored as `pbkdf2$<iterations>$<salt hex>$<hash hex>`. */
+export async function hashPin(pin: string): Promise<string> {
+  const salt = randomBytes(16);
+  const hash = await pbkdf2(pin, salt, ITERATIONS);
+  return `${PREFIX}${salt.toString("hex")}$${hash.toString("hex")}`;
+}
+
+export async function verifyPin(pin: string, stored: string): Promise<boolean> {
+  let attempt: Buffer;
+  let expected: Buffer;
+  if (stored.startsWith("pbkdf2$")) {
+    const [, rounds, salt, hash] = stored.split("$");
+    const iterations = Number(rounds);
+    if (!Number.isInteger(iterations) || iterations < 1 || !salt || !hash) return false;
+    attempt = await pbkdf2(pin, Buffer.from(salt, "hex"), iterations);
+    expected = Buffer.from(hash, "hex");
+  } else {
+    // Hashes made before the move to Workers: `<salt hex>:<scrypt hex>`, salted with the hex text itself.
+    const [salt, hash] = stored.split(":");
+    if (!salt || !hash) return false;
+    attempt = scryptSync(pin, salt, 32);
+    expected = Buffer.from(hash, "hex");
+  }
   return attempt.length === expected.length && timingSafeEqual(attempt, expected);
+}
+
+/** True for an older hash that should be replaced the next time its PIN is entered correctly. */
+export function needsRehash(stored: string): boolean {
+  return !stored.startsWith(PREFIX);
 }
 
 /** A link code like "k7pq-2xvn-9trb": easy to read aloud, about 60 bits of randomness. */

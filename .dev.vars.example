@@ -1,0 +1,6 @@
+# Copy to .dev.vars for `npm run preview`. These are the Worker's runtime secrets on your computer;
+# on Cloudflare they are set under the Worker's Settings > Variables and Secrets.
+SESSION_SECRET=replace-with-a-long-random-string
+
+# The local database for the Hyperdrive binding is not read from this file: wrangler takes it from
+# your shell or from .env, as CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE (see .env.example).
