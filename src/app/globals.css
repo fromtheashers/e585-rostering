@@ -216,6 +216,16 @@ summary {
   background: var(--panel);
 }
 
+.tabs-inline.always {
+  display: flex;
+  margin-left: 0;
+}
+
+.topbar-signin {
+  margin-left: auto;
+  flex: none;
+}
+
 .topbar-me {
   margin-left: auto;
   display: inline-flex;

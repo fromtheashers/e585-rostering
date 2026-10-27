@@ -206,24 +206,75 @@ async function signInOnce(_: FormState, form: FormData): Promise<FormState> {
     if (!claimed.length) return { error: "Someone just picked this name. If it's you, ask an admin to reset its PIN." };
     await log(p, false, "made their PIN");
   } else {
-    if (guesses.locked) return { error: TOO_MANY };
-    if (!(await verifyPin(pin, pinHash))) {
-      await wrongGuess(ip);
-      return { error: "That PIN doesn't match. Forgot it? Ask an admin to reset it." };
-    }
-    const old = pinHash;
-    // Moves PINs made before the switch to Workers onto the new hash. It changes the signature,
-    // so other devices of this person sign in once more.
-    if (needsRehash(old)) pinHash = await hashPin(pin);
-    await Promise.all([
-      clearGuesses(ip, guesses),
-      old !== pinHash && db().update(people).set({ pinHash }).where(and(eq(people.id, p.id), eq(people.pinHash, old))),
-    ]);
+    const checked = await checkExistingPin(ip, guesses, p.id, pinHash, pin);
+    if ("error" in checked) return checked;
+    pinHash = checked.pinHash;
   }
 
   await signInAs(group, p.id, pinHash);
   const next = str(form, "next");
   redirect(next.startsWith(`/g/${token}`) ? next : `/g/${token}`);
+}
+
+/**
+ * Checks the PIN of someone who already made one, with the lockout. On a match it clears the
+ * wrong tries and returns the hash to sign in with, which is new if the old one was rehashed.
+ */
+async function checkExistingPin(
+  ip: string,
+  guesses: { locked: boolean; tracked: boolean },
+  personId: number,
+  stored: string,
+  pin: string,
+): Promise<{ error: string } | { pinHash: string }> {
+  if (guesses.locked) return { error: TOO_MANY };
+  if (!(await verifyPin(pin, stored))) {
+    await wrongGuess(ip);
+    return { error: "That PIN doesn't match. Forgot it? Ask an admin to reset it." };
+  }
+  let pinHash = stored;
+  // Moves PINs made before the switch to Workers onto the new hash. It changes the signature,
+  // so other devices of this person sign in once more.
+  if (needsRehash(stored)) pinHash = await hashPin(pin);
+  await Promise.all([
+    clearGuesses(ip, guesses),
+    stored !== pinHash && db().update(people).set({ pinHash }).where(and(eq(people.id, personId), eq(people.pinHash, stored))),
+  ]);
+  return { pinHash };
+}
+
+/**
+ * Signing in from the public roster, for people who already made a PIN. It never sends or takes
+ * the group link: the group is the only one there is, and the link is used only for the redirect.
+ */
+export async function signInPublic(state: FormState, form: FormData): Promise<FormState> {
+  try {
+    return await signInPublicOnce(state, form);
+  } catch (e) {
+    unstable_rethrow(e);
+    // Workers' logs drop the message of a server action error, so write it out in one line.
+    console.error(`signInPublic failed: ${e instanceof Error ? `${e.name}: ${e.message}` : String(e)}`, e instanceof Error ? e.stack : "");
+    throw e;
+  }
+}
+
+async function signInPublicOnce(_: FormState, form: FormData): Promise<FormState> {
+  const ip = await guessKey();
+  const [group, [p], guesses] = await Promise.all([
+    firstGroup(),
+    db().select().from(people).where(and(eq(people.id, int(form, "personId")), eq(people.active, true))),
+    guessState(ip),
+  ]);
+  if (!group) redirect("/setup");
+  if (!p) redirect("/sign-in");
+  // Making a first PIN needs the group link, so a name can't be claimed from the public page.
+  if (!p.pinHash) return { error: "You haven't made a PIN yet. Open the group link your organiser shared to make one." };
+
+  const checked = await checkExistingPin(ip, guesses, p.id, p.pinHash, str(form, "pin"));
+  if ("error" in checked) return checked;
+
+  await signInAs(group, p.id, checked.pinHash);
+  redirect(`/g/${group.linkToken}`);
 }
 
 export async function forgetPerson(form: FormData) {
