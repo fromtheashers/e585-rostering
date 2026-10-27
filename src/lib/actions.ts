@@ -1,7 +1,7 @@
 "use server";
 
 import { cookies, headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { and, asc, eq, gte, inArray, isNull, max, ne, sql } from "drizzle-orm";
@@ -170,7 +170,18 @@ const TOO_MANY = "Too many wrong tries. Wait ten minutes, then try again.";
  * Picking your name. The first time, you make your PIN and the name is yours; after that it
  * needs that PIN, so nobody else can pick it.
  */
-export async function signIn(_: FormState, form: FormData): Promise<FormState> {
+export async function signIn(state: FormState, form: FormData): Promise<FormState> {
+  try {
+    return await signInOnce(state, form);
+  } catch (e) {
+    unstable_rethrow(e);
+    // Workers' logs drop the message of a server action error, so write it out in one line.
+    console.error(`signIn failed: ${e instanceof Error ? `${e.name}: ${e.message}` : String(e)}`, e instanceof Error ? e.stack : "");
+    throw e;
+  }
+}
+
+async function signInOnce(_: FormState, form: FormData): Promise<FormState> {
   const ip = await guessKey();
   // The lockout check doesn't depend on the group or the person, so it shares their round trip.
   const [{ group, token }, [p], guesses] = await Promise.all([
