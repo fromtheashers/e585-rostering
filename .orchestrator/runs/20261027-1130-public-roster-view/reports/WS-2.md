@@ -1,0 +1,1 @@
+WS-2 report: STATUS DONE (opus). Full report received in session; key points: checkExistingPin helper, signInPublic at actions.ts:250-278, sign-in pages, who link. Note: /sign-in/[id] shows names by id incl. no-PIN people.

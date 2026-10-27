@@ -68,6 +68,10 @@ export default async function Who({
       ) : null}
 
       {people.length > 0 ? <p className="small muted">Not on the list? Ask the owner or an admin to add you.</p> : null}
+
+      <p className="small muted">
+        <Link href="/">Just looking? See the roster</Link>
+      </p>
     </main>
   );
 }

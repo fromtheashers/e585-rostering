@@ -16,12 +16,12 @@ interface SetData {
 }
 
 /** The open-slot look, used for real open slots and for ones that are still saving. */
-function OpenSlot({ children }: { children?: React.ReactNode }) {
+function OpenSlot({ children, readOnly }: { children?: React.ReactNode; readOnly?: boolean }) {
   return (
     <div className="slot-open">
       <div className="row-main">
         <strong>Open song slot</strong>
-        <span className="row-sub">Anyone can lead this one.</span>
+        <span className="row-sub">{readOnly ? "Sign in to lead this one." : "Anyone can lead this one."}</span>
       </div>
       {children ? <div className="actions">{children}</div> : null}
     </div>
@@ -70,18 +70,22 @@ function SongRowBody({
   first,
   last,
   compact,
+  readOnly,
 }: {
   song: Song;
   people: Person[];
   token: string;
-  meId: number;
+  meId: number | null;
   canEdit: boolean;
   first: boolean;
   last: boolean;
   compact?: boolean;
+  readOnly?: boolean;
 }) {
   const leader = people.find((p) => p.id === song.leaderPersonId) ?? null;
   const mine = song.leaderPersonId === meId;
+
+  if (!leader && readOnly) return <OpenSlot readOnly />;
 
   if (!leader) {
     const claimed = (
@@ -117,7 +121,7 @@ function SongRowBody({
     <div className="song">
       <SongLine song={song} leaderName={leader.name} mine={mine} />
       <KeyBadge songKey={song.songKey} />
-      {!compact && (mine || canEdit) ? (
+      {!compact && !readOnly && (mine || canEdit) ? (
         <details className="disclose" style={{ gridColumn: "1 / -1" }}>
           <summary className="small muted">Edit</summary>
           <div className="stack" style={{ paddingBottom: 8 }}>
@@ -228,16 +232,20 @@ export function SongSets({
   meetingHref,
   library,
   compact,
+  readOnly,
 }: {
   sets: SetData[];
   people: Person[];
-  token: string;
-  meId: number;
+  /** Not needed (and not passed) when `readOnly`. */
+  token?: string;
+  meId: number | null;
   organiser: boolean;
   meetingId: number;
   meetingHref: string;
   library?: { title: string; artist: string; songKey: string; date: string }[];
   compact?: boolean;
+  /** Signed-out view: no claim, add, edit or open-slot controls at all. */
+  readOnly?: boolean;
 }) {
   return (
     <div className="stack-lg">
@@ -251,7 +259,7 @@ export function SongSets({
         </datalist>
       ) : null}
       {sets.map(({ role, leader, songs }) => {
-        const canEdit = organiser || leader?.id === meId;
+        const canEdit = !readOnly && (organiser || (meId !== null && leader?.id === meId));
         return (
           <SongDrafts key={role.id}>
           <section aria-labelledby={`set-${role.id}`}>
@@ -261,7 +269,7 @@ export function SongSets({
                 {role.name} set
                 <span className="muted" style={{ fontWeight: 500 }}>
                   {" "}
-                  · {leader ? (leader.id === meId ? "you" : firstName(leader.name)) : "no leader yet"}
+                  · {leader ? (meId !== null && leader.id === meId ? "you" : firstName(leader.name)) : "no leader yet"}
                 </span>
               </h3>
             </div>
@@ -280,19 +288,20 @@ export function SongSets({
                     key={s.id}
                     song={s}
                     people={people}
-                    token={token}
+                    token={token ?? ""}
                     meId={meId}
                     canEdit={canEdit}
                     first={i === 0}
                     last={i === songs.length - 1}
                     compact={compact}
+                    readOnly={readOnly}
                   />
                 ))
               )}
               <DraftRows />
               <Pending on={`slot:${meetingId}:${role.id}`} show={<OpenSlot />} />
             </div>
-            {compact ? (
+            {readOnly ? null : compact ? (
               canEdit ? (
                 <Link className="btn sm ghost" href={`${meetingHref}#songs`} style={{ marginTop: 8 }}>
                   <Plus size={16} aria-hidden /> Add songs
@@ -305,11 +314,11 @@ export function SongSets({
                     <summary>
                       <Plus size={18} aria-hidden /> Add a song you&rsquo;ll lead
                     </summary>
-                    <SongFields action={addSong} hidden={{ token, meetingId, setRoleId: role.id }} submit="Add song" people={people} />
+                    <SongFields action={addSong} hidden={{ token: token ?? "", meetingId, setRoleId: role.id }} submit="Add song" people={people} />
                   </details>
                 ) : null}
                 <SaveForm action={addOpenSlot} keys={[`slot:${meetingId}:${role.id}`]}>
-                  <Hidden values={{ token, meetingId, setRoleId: role.id }} />
+                  <Hidden values={{ token: token ?? "", meetingId, setRoleId: role.id }} />
                   <button type="submit" className="btn sm ghost">
                     <Plus size={16} aria-hidden /> Open a song slot for someone else
                   </button>
