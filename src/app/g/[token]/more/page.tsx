@@ -6,7 +6,7 @@ import { memberContext } from "@/lib/guard";
 import { forgetPerson } from "@/lib/actions";
 import { rosterText } from "@/lib/roster";
 import { Hidden } from "@/components/ui";
-import { CopyButton } from "@/components/client";
+import { CopyButton, ShareButtons } from "@/components/client";
 
 export const metadata = { title: "More" };
 
@@ -41,10 +41,15 @@ export default async function More({ params }: { params: Promise<{ token: string
         <h2 id="share-h" style={{ fontSize: "var(--fs-md)", fontWeight: 600 }}>
           Share the roster in the group chat
         </h2>
-        <p className="small muted">The next {meetings.length || ""} meetings as plain text, with the link at the end.</p>
+        <p className="small muted">
+          {meetings.length === 0
+            ? "No meetings are planned yet, so for now this is just the link."
+            : `The next ${meetings.length === 1 ? "meeting" : `${meetings.length} meetings`} as plain text, with the link at the end.`}
+        </p>
         <pre className="copybox">{text}</pre>
         <div className="actions">
           <CopyButton text={text} label="Copy roster" className="btn sm primary" />
+          <ShareButtons text={text} />
           <CopyButton text={link} label="Copy group link" />
         </div>
       </section>

@@ -8,7 +8,7 @@ web
 
 ## Stack
 
-Next.js (App Router, TypeScript) on a Render web service, Postgres on Neon, Drizzle ORM. The user chose Neon and Render; the framework was recommended in the approved plan and accepted.
+Next.js (App Router, TypeScript) on Cloudflare Workers via the OpenNext adapter, Postgres on Neon reached through Cloudflare Hyperdrive (caching off), Drizzle ORM. The user chose Neon; the app moved from a Render web service to Workers, and the code still runs on Node so the Render service works until it is switched off.
 
 ## Users
 
@@ -37,7 +37,7 @@ Built for one small group of friends rather than a church-wide planning tool: no
 - The organiser can add, rename and remove names on the pick-your-name list; removing hides the name but keeps history.
 - Availability per meeting (Yes / Maybe / No) with a default; serving preference per role (Love / Happy / Rather not); an optional cap on times per month.
 - Auto-fill: only people marked Yes (Maybe as fallback), never "Rather not", one role per person per meeting, respects caps, prefers Love and whoever served least, fills required roles first, never fills open song slots, never overwrites sign-ups or organiser assignments.
-- Render free tier sleeps after 15 minutes idle (30 to 60 second cold start).
+- Cloudflare Workers don't sleep, so there is no cold start. Free plan: 10 ms CPU per request (database waits don't count). While the old Render free service is still running, it sleeps after 15 minutes idle (30 to 60 second cold start).
 - Out of scope: accounts, chat, payments, automated SMS or email.
 
 ## Evidence on Hand

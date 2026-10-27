@@ -4,7 +4,7 @@ import { startTransition, useActionState, useEffect, useRef, useState, type Reac
 import { useFormStatus } from "react-dom";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { CalendarDays, Check, Copy, Home, Menu, UserRound } from "lucide-react";
+import { CalendarDays, Check, Copy, Home, Menu, MessageCircle, Share, UserRound } from "lucide-react";
 import type { FormState } from "@/lib/actions";
 import { formData, isRedirect, useSaver } from "./optimistic";
 
@@ -151,6 +151,37 @@ export function CopyButton({ text, label = "Copy", done = "Copied", className = 
       {copied ? <Check size={16} aria-hidden /> : <Copy size={16} aria-hidden />}
       <span aria-live="polite">{copied ? done : label}</span>
     </button>
+  );
+}
+
+/**
+ * Sends text straight into a chat: a WhatsApp link that works everywhere, plus the phone's own
+ * share sheet (Telegram, Messages…) where the browser has one. The share button only appears
+ * after the page loads, once we know the browser supports it.
+ */
+export function ShareButtons({ text, className = "btn sm" }: { text: string; className?: string }) {
+  const [canShare, setCanShare] = useState(false);
+  useEffect(() => setCanShare(typeof navigator !== "undefined" && typeof navigator.share === "function"), []);
+  return (
+    <>
+      <a className={className} href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noopener noreferrer">
+        <MessageCircle size={16} aria-hidden />
+        Send in WhatsApp
+      </a>
+      {canShare ? (
+        <button
+          type="button"
+          className={className}
+          onClick={() => {
+            // Closing the share sheet without picking an app rejects; that's fine.
+            navigator.share({ text }).catch(() => {});
+          }}
+        >
+          <Share size={16} aria-hidden />
+          Other apps
+        </button>
+      ) : null}
+    </>
   );
 }
 

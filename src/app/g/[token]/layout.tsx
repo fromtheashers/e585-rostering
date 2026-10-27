@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { context } from "@/lib/data";
 import { Avatar, Mark } from "@/components/ui";
@@ -6,6 +7,16 @@ import { SaveRoot } from "@/components/optimistic";
 import { firstName } from "@/lib/palette";
 
 export const dynamic = "force-dynamic";
+
+/** Lets "Add to Home Screen" open this group's roster as its own app. */
+export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
+  const { token } = await params;
+  const { group } = await context(token);
+  return {
+    manifest: `/g/${token}/manifest.webmanifest`,
+    appleWebApp: { capable: true, title: group.name, statusBarStyle: "default" },
+  };
+}
 
 export default async function GroupLayout({
   children,

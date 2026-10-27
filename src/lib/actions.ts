@@ -4,7 +4,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
-import { and, asc, eq, gte, inArray, isNull, max, ne } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, max, ne, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import type { AvailabilityStatus, Group, Person, PersonAccess, PreferenceLevel } from "@/db/schema";
 import {
@@ -18,12 +18,12 @@ import {
   preferencesFor,
   recentServingCounts,
 } from "./data";
-import { hashPin, newLinkToken, personSignature, verifyPin } from "./secrets";
+import { hashPin, needsRehash, newLinkToken, personSignature, verifyPin } from "./secrets";
 import { addDays, isFriday, shortDate, todayIn } from "./dates";
 import { autofill } from "./autofill";
 import { firstName, nextHue } from "./palette";
 
-const { groups, people, roles, meetings, assignments, songs, availability, rolePreferences, activity } = schema;
+const { groups, people, roles, meetings, assignments, songs, availability, rolePreferences, activity, pinFailures } = schema;
 
 const YEAR = 60 * 60 * 24 * 365;
 const cookieOptions = { httpOnly: true, sameSite: "lax" as const, secure: process.env.NODE_ENV === "production", path: "/", maxAge: YEAR };
@@ -111,7 +111,7 @@ export async function createGroup(_: FormState, form: FormData): Promise<FormSta
   await db()
     .insert(roles)
     .values(DEFAULT_ROLES.map((r, i) => ({ ...r, sortOrder: i + 1 })));
-  const pinHash = hashPin(pin);
+  const pinHash = await hashPin(pin);
   const [me] = await db().insert(people).values({ name: owner, hue: 0, pinHash, access: "owner" }).returning();
   await signInAs(group, me.id, pinHash);
   await log(me, true, `set up ${name}`);
@@ -127,29 +127,57 @@ async function signInAs(group: Group, personId: number, pinHash: string) {
 const PIN = /^\d{4,6}$/;
 
 // Slows down PIN guessing: five wrong tries from one address locks it out for ten minutes.
-const failures = new Map<string, { count: number; until: number }>();
+// Kept in the database because Workers run many short-lived copies of the app.
+const MAX_TRIES = 5;
 
 async function guessKey() {
-  return (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+  const h = await headers();
+  return h.get("cf-connecting-ip")?.trim() || h.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
 }
 
-function lockedOut(ip: string) {
-  const f = failures.get(ip);
-  return !!f && f.until > Date.now();
+/** `locked` while the lockout lasts; `tracked` when there is a row that a correct PIN should clear. */
+async function guessState(ip: string) {
+  const [row] = await db()
+    .select({ locked: sql<boolean>`coalesce(${pinFailures.lockedUntil} > now(), false)` })
+    .from(pinFailures)
+    .where(eq(pinFailures.key, ip));
+  return { locked: !!row?.locked, tracked: !!row };
 }
 
-function wrongGuess(ip: string) {
-  const count = (failures.get(ip)?.count ?? 0) + 1;
-  failures.set(ip, { count: count >= 5 ? 0 : count, until: count >= 5 ? Date.now() + 10 * 60_000 : 0 });
+async function wrongGuess(ip: string) {
+  // One upsert: the fifth wrong try starts the lockout and resets the count.
+  const next = sql`${pinFailures.count} + 1`;
+  await db()
+    .insert(pinFailures)
+    .values({ key: ip, count: 1 })
+    .onConflictDoUpdate({
+      target: pinFailures.key,
+      set: {
+        count: sql`case when ${next} >= ${MAX_TRIES} then 0 else ${next} end`,
+        lockedUntil: sql`case when ${next} >= ${MAX_TRIES} then now() + interval '10 minutes' else null end`,
+        updatedAt: sql`now()`,
+      },
+    });
 }
+
+async function clearGuesses(ip: string, state: { tracked: boolean }) {
+  if (state.tracked) await db().delete(pinFailures).where(eq(pinFailures.key, ip));
+}
+
+const TOO_MANY = "Too many wrong tries. Wait ten minutes, then try again.";
 
 /**
  * Picking your name. The first time, you make your PIN and the name is yours; after that it
  * needs that PIN, so nobody else can pick it.
  */
 export async function signIn(_: FormState, form: FormData): Promise<FormState> {
-  const { group, token } = await load(form);
-  const [p] = await db().select().from(people).where(and(eq(people.id, int(form, "personId")), eq(people.active, true)));
+  const ip = await guessKey();
+  // The lockout check doesn't depend on the group or the person, so it shares their round trip.
+  const [{ group, token }, [p], guesses] = await Promise.all([
+    load(form),
+    db().select().from(people).where(and(eq(people.id, int(form, "personId")), eq(people.active, true))),
+    guessState(ip),
+  ]);
   if (!p) redirect(`/g/${token}/who`);
   const pin = str(form, "pin");
   let pinHash = p.pinHash;
@@ -157,7 +185,7 @@ export async function signIn(_: FormState, form: FormData): Promise<FormState> {
   if (!pinHash) {
     if (!PIN.test(pin)) return { error: "The PIN needs to be 4 to 6 digits." };
     if (pin !== str(form, "confirm")) return { error: "The two PINs don't match." };
-    pinHash = hashPin(pin);
+    pinHash = await hashPin(pin);
     // Only claims the name if nobody else made a PIN for it a moment ago.
     const claimed = await db()
       .update(people)
@@ -167,13 +195,19 @@ export async function signIn(_: FormState, form: FormData): Promise<FormState> {
     if (!claimed.length) return { error: "Someone just picked this name. If it's you, ask an admin to reset its PIN." };
     await log(p, false, "made their PIN");
   } else {
-    const ip = await guessKey();
-    if (lockedOut(ip)) return { error: "Too many wrong tries. Wait ten minutes, then try again." };
-    if (!verifyPin(pin, pinHash)) {
-      wrongGuess(ip);
+    if (guesses.locked) return { error: TOO_MANY };
+    if (!(await verifyPin(pin, pinHash))) {
+      await wrongGuess(ip);
       return { error: "That PIN doesn't match. Forgot it? Ask an admin to reset it." };
     }
-    failures.delete(ip);
+    const old = pinHash;
+    // Moves PINs made before the switch to Workers onto the new hash. It changes the signature,
+    // so other devices of this person sign in once more.
+    if (needsRehash(old)) pinHash = await hashPin(pin);
+    await Promise.all([
+      clearGuesses(ip, guesses),
+      old !== pinHash && db().update(people).set({ pinHash }).where(and(eq(people.id, p.id), eq(people.pinHash, old))),
+    ]);
   }
 
   await signInAs(group, p.id, pinHash);
@@ -188,17 +222,17 @@ export async function forgetPerson(form: FormData) {
 }
 
 export async function changeMyPin(_: FormState, form: FormData): Promise<FormState> {
-  const { group, token, me } = await member(form);
   const ip = await guessKey();
-  if (lockedOut(ip)) return { error: "Too many wrong tries. Wait ten minutes, then try again." };
-  if (!me.pinHash || !verifyPin(str(form, "current"), me.pinHash)) {
-    wrongGuess(ip);
+  const [{ group, token, me }, guesses] = await Promise.all([member(form), guessState(ip)]);
+  if (guesses.locked) return { error: TOO_MANY };
+  if (!me.pinHash || !(await verifyPin(str(form, "current"), me.pinHash))) {
+    await wrongGuess(ip);
     return { error: "Your current PIN doesn't match." };
   }
   const pin = str(form, "pin");
   if (!PIN.test(pin)) return { error: "The new PIN needs to be 4 to 6 digits." };
   if (pin !== str(form, "confirm")) return { error: "The two new PINs don't match." };
-  const pinHash = hashPin(pin);
+  const pinHash = await hashPin(pin);
   await db().update(people).set({ pinHash }).where(eq(people.id, me.id));
   await signInAs(group, me.id, pinHash);
   refresh(token);
@@ -210,15 +244,15 @@ export async function changeMyPin(_: FormState, form: FormData): Promise<FormSta
  * makes whoever is signed in the owner, then it is cleared.
  */
 export async function claimOwner(_: FormState, form: FormData): Promise<FormState> {
-  const { group, token, me } = await member(form);
-  if (!group.pinHash || (await ownerOf())) redirect(`/g/${token}/more`);
   const ip = await guessKey();
-  if (lockedOut(ip)) return { error: "Too many wrong tries. Wait ten minutes, then try again." };
-  if (!verifyPin(str(form, "pin"), group.pinHash)) {
-    wrongGuess(ip);
+  const [{ group, token, me }, owner, guesses] = await Promise.all([member(form), ownerOf(), guessState(ip)]);
+  if (!group.pinHash || owner) redirect(`/g/${token}/more`);
+  if (guesses.locked) return { error: TOO_MANY };
+  if (!(await verifyPin(str(form, "pin"), group.pinHash))) {
+    await wrongGuess(ip);
     return { error: "That PIN doesn't match. Try again." };
   }
-  failures.delete(ip);
+  await clearGuesses(ip, guesses);
   await db().update(people).set({ access: "owner" }).where(eq(people.id, me.id));
   await db().update(groups).set({ pinHash: null }).where(eq(groups.id, group.id));
   await log(me, true, "became the owner");

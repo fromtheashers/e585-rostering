@@ -9,3 +9,6 @@ next-env.d.ts
 .taste-skill/
 .impeccable/review/
 .impeccable/questions/
+.open-next/
+.wrangler/
+.dev.vars

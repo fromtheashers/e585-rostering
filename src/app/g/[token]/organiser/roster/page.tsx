@@ -17,7 +17,7 @@ import { rosterText } from "@/lib/roster";
 import { shortDate } from "@/lib/dates";
 import { firstName } from "@/lib/palette";
 import { Avatar, Hidden } from "@/components/ui";
-import { AutoSelect, CopyButton, SubmitButton } from "@/components/client";
+import { AutoSelect, CopyButton, ShareButtons, SubmitButton } from "@/components/client";
 
 export const metadata = { title: "Roster grid" };
 
@@ -176,8 +176,9 @@ export default async function RosterGrid({ params }: { params: Promise<{ token: 
                 Share in the group chat
               </h2>
               <pre className="copybox">{text}</pre>
-              <div>
+              <div className="actions">
                 <CopyButton text={text} label="Copy roster" className="btn sm primary" />
+                <ShareButtons text={text} />
               </div>
             </section>
           </div>

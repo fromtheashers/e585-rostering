@@ -121,6 +121,14 @@ export const activity = pgTable("activity", {
   message: text("message").notNull(),
 });
 
+/** Wrong PIN tries per client address, so the lockout holds across Worker instances and restarts. */
+export const pinFailures = pgTable("pin_failures", {
+  key: text("key").primaryKey(),
+  count: integer("count").notNull().default(0),
+  lockedUntil: timestamp("locked_until", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type Group = typeof groups.$inferSelect;
 export type Person = typeof people.$inferSelect;
 export type Role = typeof roles.$inferSelect;
