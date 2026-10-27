@@ -78,7 +78,7 @@ The new app must sign sign-ins with the same secret as the Render one, so both t
 4. GitHub opens. Pick the account `fromtheashers`, choose **Only select repositories**, pick `e585-rostering`, and click **Install & Authorize** (GitHub may ask for your password). You come back to Cloudflare.
 5. Click `e585-rostering` in the repository list.
 6. Fill in the **Set up your application** page:
-   - **Project name:** `e585-rostering`. It must match the `name` in `wrangler.jsonc`, or the build fails.
+   - **Project name:** `cgroster`. It must match the `name` in `wrangler.jsonc`, or the build fails.
    - **Build command:** `npm run cf:build` (it updates the database tables, then builds the app).
    - **Deploy command:** `npx opennextjs-cloudflare deploy`
    - **Path** (root directory): leave it as `/`.
@@ -108,9 +108,9 @@ The build command updates the real Neon tables, so only `main` should build.
 
 ### 9. Open the new address and check it
 
-1. Click the **Overview** tab (or **Deployments**). Under **Domains** (or **Visit**), click the address ending in `.workers.dev`, for example `https://e585-rostering.your-name.workers.dev`.
+1. Click the **Overview** tab (or **Deployments**). Under **Domains** (or **Visit**), click the address ending in `.workers.dev`, for example `https://cgroster.your-name.workers.dev`.
 2. You should see **This roster is private.** That means the Worker reached your Neon data and found your group. (If you see **Set up your group's roster** instead, the Hyperdrive string points at the wrong Neon database: don't fill it in; go back to step 3 and check the branch and database.)
-3. Take your group link, for example `https://e585-rostering.onrender.com/g/k7pq-2xvn-9trb`, and swap the part before `/g/` for the new address: `https://e585-rostering.your-name.workers.dev/g/k7pq-2xvn-9trb`. The code after `/g/` stays the same.
+3. Take your group link, for example `https://e585-rostering.onrender.com/g/k7pq-2xvn-9trb`, and swap the part before `/g/` for the new address: `https://cgroster.your-name.workers.dev/g/k7pq-2xvn-9trb`. The code after `/g/` stays the same.
 4. Open it. You see **Who are you?** with everyone's names, because this phone hasn't signed in on the new address yet.
 5. Tap your name and enter your usual PIN. You see the roster with all your Fridays, roles and songs.
 6. Try one tap, for example mark yourself **Maybe** for a Friday, then open the old Render link and check it shows the same.

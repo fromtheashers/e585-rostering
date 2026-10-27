@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "e585-rostering",
+  "name": "cgroster",
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-10-01",
   // Node.js APIs the app and the pg driver use (crypto, net sockets, Buffer).
