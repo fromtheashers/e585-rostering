@@ -14,6 +14,7 @@ import {
   availabilityFor,
   firstGroup,
   groupAndPerson,
+  offersFor,
   ownerOf,
   preferencesFor,
   recentServingCounts,
@@ -23,7 +24,7 @@ import { addDays, isFriday, shortDate, todayIn } from "./dates";
 import { autofill } from "./autofill";
 import { firstName, nextHue } from "./palette";
 
-const { groups, people, roles, meetings, assignments, songs, availability, rolePreferences, activity, pinFailures } = schema;
+const { groups, people, roles, meetings, assignments, songs, availability, rolePreferences, roleOffers, activity, pinFailures } = schema;
 
 const YEAR = 60 * 60 * 24 * 365;
 const cookieOptions = { httpOnly: true, sameSite: "lax" as const, secure: process.env.NODE_ENV === "production", path: "/", maxAge: YEAR };
@@ -323,8 +324,10 @@ export async function claimOwner(_: FormState, form: FormData): Promise<FormStat
 
 /* ---------- Roles at a meeting ---------- */
 
+/** Admins put themselves straight on a role. Members can only offer; an admin then puts them on it. */
 export async function takeRole(form: FormData) {
   const { token, me, organiser } = await member(form);
+  if (!organiser) return offerRole(form);
   const meetingId = int(form, "meetingId");
   const roleId = int(form, "roleId");
   const [existing] = await db()
@@ -338,13 +341,47 @@ export async function takeRole(form: FormData) {
   if (existing) await db().delete(assignments).where(eq(assignments.id, existing.id));
   const [, , n] = await Promise.all([
     db().insert(assignments).values({ meetingId, roleId, personId: me.id, status: "confirmed", source: "self" }),
-    db()
-      .insert(availability)
-      .values({ personId: me.id, meetingId, status: "yes" })
-      .onConflictDoUpdate({ target: [availability.personId, availability.meetingId], set: { status: "yes" } }),
+    markFree(me.id, meetingId),
     names(meetingId, roleId),
   ]);
   await log(me, organiser, `took ${n.role} for ${n.date}`);
+  refresh(token);
+}
+
+function markFree(personId: number, meetingId: number) {
+  return db()
+    .insert(availability)
+    .values({ personId, meetingId, status: "yes" })
+    .onConflictDoUpdate({ target: [availability.personId, availability.meetingId], set: { status: "yes" } });
+}
+
+/** "I could do this one this Friday." Offering also marks you free that Friday. */
+export async function offerRole(form: FormData) {
+  const { group, token, me, organiser } = await member(form);
+  const meetingId = int(form, "meetingId");
+  const roleId = int(form, "roleId");
+  const n = await names(meetingId, roleId);
+  if (!n.meeting || n.meeting.date < todayIn(group.timezone)) return;
+  const [added] = await Promise.all([
+    db().insert(roleOffers).values({ personId: me.id, meetingId, roleId }).onConflictDoNothing().returning(),
+    markFree(me.id, meetingId),
+  ]);
+  if (added.length) await log(me, organiser, `offered to do ${n.role} on ${n.date}`);
+  refresh(token);
+}
+
+export async function withdrawOffer(form: FormData) {
+  const { token, me, organiser } = await member(form);
+  const meetingId = int(form, "meetingId");
+  const roleId = int(form, "roleId");
+  const gone = await db()
+    .delete(roleOffers)
+    .where(and(eq(roleOffers.personId, me.id), eq(roleOffers.meetingId, meetingId), eq(roleOffers.roleId, roleId)))
+    .returning();
+  if (gone.length) {
+    const n = await names(meetingId, roleId);
+    await log(me, organiser, `withdrew their offer for ${n.role} on ${n.date}`);
+  }
   refresh(token);
 }
 
@@ -373,7 +410,13 @@ export async function assignRole(form: FormData) {
   await db().delete(assignments).where(and(eq(assignments.meetingId, meetingId), eq(assignments.roleId, roleId)));
   const n = await names(meetingId, roleId);
   if (Number.isInteger(personId) && personId > 0) {
-    await db().insert(assignments).values({ meetingId, roleId, personId, status: "confirmed", source: "organiser" });
+    await Promise.all([
+      db().insert(assignments).values({ meetingId, roleId, personId, status: "confirmed", source: "organiser" }),
+      // Their offer has been taken up.
+      db()
+        .delete(roleOffers)
+        .where(and(eq(roleOffers.personId, personId), eq(roleOffers.meetingId, meetingId), eq(roleOffers.roleId, roleId))),
+    ]);
     const [p] = await db().select().from(people).where(eq(people.id, personId));
     await log(me, organiser, `put ${p?.name ?? "someone"} on ${n.role} for ${n.date}`);
   } else {
@@ -584,11 +627,12 @@ export async function suggestRoster(form: FormData) {
   const upcoming = await rosterWindow(group);
   if (upcoming.length === 0) return;
   const ids = upcoming.map((m) => m.id);
-  const [ppl, rls, avail, prefs, existing, recent] = await Promise.all([
+  const [ppl, rls, avail, prefs, offers, existing, recent] = await Promise.all([
     activePeople(),
     activeRoles(),
     availabilityFor(ids),
     preferencesFor(),
+    offersFor(ids),
     db().select().from(assignments).where(inArray(assignments.meetingId, ids)),
     recentServingCounts(upcoming[0].date),
   ]);
@@ -599,6 +643,7 @@ export async function suggestRoster(form: FormData) {
     people: ppl,
     availability: new Map(avail.map((a) => [`${a.personId}:${a.meetingId}`, a.status])),
     preferences: new Map(prefs.map((p) => [`${p.personId}:${p.roleId}`, p.level])),
+    offers: new Set(offers.map((o) => `${o.personId}:${o.meetingId}:${o.roleId}`)),
     existing: existing.map((e) => ({ ...e, date: dateOf.get(e.meetingId) ?? "" })),
     recentCounts: recent,
     allowedPairs: group.allowedPairs,

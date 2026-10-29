@@ -56,12 +56,12 @@ export function rosterText(opts: {
       lines.push(`Songs: ${set.map((s) => (s.songKey ? `${s.title} (${s.songKey})` : s.title)).join(", ")}`);
     }
   }
-  lines.push("", `Sign up or check the roster: ${opts.link}`);
+  lines.push("", `Offer to serve or check the roster: ${opts.link}`);
   return lines.join("\n");
 }
 
 export function coverText(opts: { roleName: string; date: string; link: string }): string {
-  return `Can anyone cover ${opts.roleName} on ${shortDate(opts.date)}? Tap the link to take it: ${opts.link}`;
+  return `Can anyone cover ${opts.roleName} on ${shortDate(opts.date)}? Tap the link if you can: ${opts.link}`;
 }
 
 export function greetingFor(opts: { me: Person; mine: string[]; open: number; when: string }): string {

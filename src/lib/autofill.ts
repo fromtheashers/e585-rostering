@@ -10,6 +10,8 @@
  * 5. Whoever has served the fewest times recently, with Love counting as one time fewer,
  *    so keen people are picked a bit more often without taking every Friday.
  * 6. Required roles first; optional roles (Games) only if someone suitable is left.
+ * Someone who offered for that exact role on that Friday comes first (unless away that day),
+ * even over a "Rather not", since the offer is the more recent and specific answer.
  * Existing assignments (sign-ups, organiser picks, earlier suggestions) are never touched.
  */
 
@@ -26,6 +28,8 @@ export interface AutofillInput {
   /** Times each person served in the weeks before the first meeting being filled. */
   recentCounts: Map<number, number>;
   allowedPairs: [number, number][];
+  /** `${personId}:${meetingId}:${roleId}` for each offer made on a Friday. */
+  offers?: Set<string>;
 }
 
 export interface Suggestion {
@@ -62,8 +66,9 @@ export function autofill(input: AutofillInput): Suggestion[] {
     for (const role of roleOrder) {
       if (held.some((h) => h.meetingId === meeting.id && h.roleId === role.id)) continue;
 
+      const offered = (personId: number) => input.offers?.has(`${personId}:${meeting.id}:${role.id}`) ?? false;
       const fits = (personId: number) => {
-        if (input.preferences.get(`${personId}:${role.id}`) === "rather_not") return false;
+        if (input.preferences.get(`${personId}:${role.id}`) === "rather_not" && !offered(personId)) return false;
         const rolesHere = held.filter((h) => h.meetingId === meeting.id && h.personId === personId);
         if (rolesHere.some((h) => !pairAllowed(input.allowedPairs, h.roleId, role.id))) return false;
         const cap = input.people.find((p) => p.id === personId)?.maxPerMonth;
@@ -88,7 +93,8 @@ export function autofill(input: AutofillInput): Suggestion[] {
       const pool = (status: Avail) =>
         input.people.map((p) => p.id).filter((id) => availabilityFor(input, id, meeting.id) === status && fits(id));
 
-      const chosen = best(pool("yes")) ?? best(pool("maybe"));
+      const offers = [...pool("yes"), ...pool("maybe")].filter(offered);
+      const chosen = best(offers) ?? best(pool("yes")) ?? best(pool("maybe"));
       if (chosen === undefined) continue;
 
       suggestions.push({ meetingId: meeting.id, roleId: role.id, personId: chosen });

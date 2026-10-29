@@ -83,6 +83,7 @@ function OpenPane({ pane, children }: { pane: PaneData; children?: ReactNode }) 
 /** Save keys shared by every control that takes or frees a role, so they all change together. */
 export const takeKey = (meetingId: number, roleId: number) => `take:${meetingId}:${roleId}`;
 export const dropKey = (meetingId: number, roleId: number) => `drop:${meetingId}:${roleId}`;
+export const offerKey = (meetingId: number, roleId: number) => `offer:${meetingId}:${roleId}`;
 
 /**
  * The roster for one Friday, drawn as a leaded window. Filled slots are panes in the person's colour.

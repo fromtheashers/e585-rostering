@@ -8,6 +8,7 @@ import {
   availabilityFor,
   levelOf,
   meetingByDate,
+  offersFor,
   preferencesFor,
   recentServingCounts,
   songLibrary,
@@ -15,12 +16,13 @@ import {
   statusOf,
 } from "@/lib/data";
 import { memberContext } from "@/lib/guard";
-import { assignRole, dropRole, setAvailability, takeRole } from "@/lib/actions";
+import { assignRole, dropRole, setAvailability } from "@/lib/actions";
 import { coverText, panesFor, setsFor } from "@/lib/roster";
 import { longDate, prettyTime, relativeFriday } from "@/lib/dates";
 import { firstName } from "@/lib/palette";
 import { Avatar, Hidden, Window, dropKey, takeKey, type PaneData } from "@/components/ui";
-import { AutoSeg, AutoSelect, ConfirmButton, CopyButton, ShareButtons } from "@/components/client";
+import { OpenRoleAction } from "@/components/offer";
+import { AutoSeg, AutoSelect, ConfirmButton, CopyButton, ShareButtons, SubmitButton } from "@/components/client";
 import { Pending, SaveForm } from "@/components/optimistic";
 import type { Person } from "@/db/schema";
 import { SongSets } from "@/components/songs";
@@ -42,13 +44,14 @@ export default async function MeetingPage({ params }: { params: Promise<{ token:
   if (!meeting) notFound();
   const base = `/g/${token}`;
 
-  const [roles, people, assignments, songs, avail, prefs, counts, library] = await Promise.all([
+  const [roles, people, assignments, songs, avail, prefs, offers, counts, library] = await Promise.all([
     activeRoles(),
     activePeople(),
     assignmentsFor([meeting.id]),
     songsFor([meeting.id]),
     availabilityFor([meeting.id]),
     preferencesFor(),
+    offersFor([meeting.id]),
     recentServingCounts(date),
     songLibrary(date),
   ]);
@@ -59,6 +62,10 @@ export default async function MeetingPage({ params }: { params: Promise<{ token:
   const proto = host.startsWith("localhost") ? "http" : "https";
   const link = `${proto}://${host}${base}/m/${date}`;
   const past = date < today;
+  const offeredBy = (personId: number, roleId: number) => offers.some((o) => o.personId === personId && o.roleId === roleId);
+  const action = (p: PaneData) => (
+    <OpenRoleAction token={token} meetingId={meeting.id} pane={p} organiser={organiser} offered={offeredBy(me.id, p.roleId)} />
+  );
 
   return (
     <main className="shell page">
@@ -81,7 +88,7 @@ export default async function MeetingPage({ params }: { params: Promise<{ token:
             href={(roleId) => `#role-${roleId}`}
             meetingId={meeting.id}
             me={me}
-            openAction={(p) => (past ? null : <TakeButton token={token} meetingId={meeting.id} pane={p} />)}
+            openAction={(p) => (past ? null : action(p))}
           />
 
           <section aria-labelledby="roles-h">
@@ -94,18 +101,22 @@ export default async function MeetingPage({ params }: { params: Promise<{ token:
                 const isMine = p.person?.id === me.id && !p.suggested;
                 const open = !p.person || p.suggested;
                 const nobody = p.required ? "Needs someone" : "Optional · nobody yet";
+                const offerCount = people.filter((person) => offeredBy(person.id, p.roleId)).length;
+                const iOffered = offeredBy(me.id, p.roleId);
                 const candidates = open
                   ? people
                       .map((person) => ({
                         person,
                         status: statusOf(avail, person, meeting.id).status,
                         level: levelOf(prefs, person.id, p.roleId),
+                        offered: offeredBy(person.id, p.roleId),
                         served: counts.get(person.id) ?? 0,
                         busy: panes.some((x) => x.person?.id === person.id && !x.suggested),
                       }))
-                      .filter((c) => c.status !== "no" && c.level !== "rather_not" && !c.busy)
+                      .filter((c) => c.status !== "no" && (c.offered || c.level !== "rather_not") && !c.busy)
                       .sort(
                         (x, y) =>
+                          Number(y.offered) - Number(x.offered) ||
                           (x.status === "yes" ? 0 : 1) - (y.status === "yes" ? 0 : 1) ||
                           (x.level === "love" ? 0 : 1) - (y.level === "love" ? 0 : 1) ||
                           x.served - y.served,
@@ -123,9 +134,13 @@ export default async function MeetingPage({ params }: { params: Promise<{ token:
                           ? isMine
                             ? "You"
                             : p.person!.name
-                          : p.suggested
-                            ? `${nobody} (auto-fill pencilled in ${firstName(p.person!.name)})`
-                            : nobody
+                          : [
+                              p.suggested ? `${nobody} (auto-fill pencilled in ${firstName(p.person!.name)})` : nobody,
+                              iOffered && !organiser ? "you offered, an admin will confirm" : "",
+                              organiser && offerCount ? `${offerCount} offered` : "",
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")
                       }
                     >
                       {!past && isMine && a ? (
@@ -136,23 +151,23 @@ export default async function MeetingPage({ params }: { params: Promise<{ token:
                           </ConfirmButton>
                         </SaveForm>
                       ) : null}
-                      {!past && open ? <TakeButton token={token} meetingId={meeting.id} pane={p} /> : null}
+                      {!past && open ? action(p) : null}
                     </RoleHead>
 
                     {organiser && !past ? (
                       p.person && !p.suggested ? (
                         <details className="disclose" style={{ marginTop: 4 }}>
                           <summary className="small muted">Change who&rsquo;s on {p.roleName}</summary>
-                          <AssignSelect token={token} meetingId={meeting.id} pane={p} people={people} avail={avail} />
+                          <AssignSelect token={token} meetingId={meeting.id} pane={p} people={people} avail={avail} offered={offeredBy} />
                         </details>
                       ) : (
                         <div style={{ marginTop: 10 }}>
-                          <AssignSelect token={token} meetingId={meeting.id} pane={p} people={people} avail={avail} />
+                          <AssignSelect token={token} meetingId={meeting.id} pane={p} people={people} avail={avail} offered={offeredBy} />
                         </div>
                       )
                     ) : null}
 
-                    {open && p.required && !past ? (
+                    {open && !past && (p.required || offerCount > 0) ? (
                       <div className="panel" style={{ marginTop: 10 }}>
                         <p className="small" style={{ fontWeight: 600, marginBottom: 4 }}>
                           Who might take it
@@ -167,10 +182,19 @@ export default async function MeetingPage({ params }: { params: Promise<{ token:
                                 <span className="row-main">
                                   <strong>{c.person.id === me.id ? "You" : c.person.name}</strong>
                                   <span className="row-sub">
+                                    {c.offered ? "Offered for this Friday · " : ""}
                                     {STATUS_LABEL[c.status]}
                                     {c.level ? ` · ${LEVEL_LABEL[c.level]}` : ""} · served {c.served}× in the last 8 weeks
                                   </span>
                                 </span>
+                                {organiser ? (
+                                  <form action={assignRole}>
+                                    <Hidden values={{ token, meetingId: meeting.id, roleId: p.roleId, personId: c.person.id }} />
+                                    <SubmitButton className={`btn sm${c.offered ? " primary" : ""}`} pending="Adding…" aria-label={`Put ${c.person.name} on ${p.roleName}`}>
+                                      Put on
+                                    </SubmitButton>
+                                  </form>
+                                ) : null}
                               </li>
                             ))}
                           </ul>
@@ -237,17 +261,6 @@ export default async function MeetingPage({ params }: { params: Promise<{ token:
   );
 }
 
-function TakeButton({ token, meetingId, pane }: { token: string; meetingId: number; pane: PaneData }) {
-  return (
-    <SaveForm action={takeRole} keys={[takeKey(meetingId, pane.roleId)]}>
-      <Hidden values={{ token, meetingId, roleId: pane.roleId }} />
-      <button type="submit" className={`btn sm${pane.required ? " primary" : ""}`}>
-        {pane.required ? "Take it" : "I'll do it"}
-      </button>
-    </SaveForm>
-  );
-}
-
 function RoleHead({
   roleName,
   person,
@@ -278,12 +291,14 @@ function AssignSelect({
   pane,
   people,
   avail,
+  offered,
 }: {
   token: string;
   meetingId: number;
   pane: PaneData;
   people: Person[];
   avail: Parameters<typeof statusOf>[0];
+  offered: (personId: number, roleId: number) => boolean;
 }) {
   return (
     <AutoSelect
@@ -297,7 +312,7 @@ function AssignSelect({
         { value: "", label: "Nobody" },
         ...people.map((person) => ({
           value: String(person.id),
-          label: `${person.name} · ${STATUS_LABEL[statusOf(avail, person, meetingId).status]}`,
+          label: `${person.name} · ${STATUS_LABEL[statusOf(avail, person, meetingId).status]}${offered(person.id, pane.roleId) ? " · offered" : ""}`,
         })),
       ]}
     />

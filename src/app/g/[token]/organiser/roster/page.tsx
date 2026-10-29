@@ -6,6 +6,7 @@ import {
   activeRoles,
   assignmentsFor,
   availabilityFor,
+  offersFor,
   recentServingCounts,
   songsFor,
   statusOf,
@@ -30,13 +31,21 @@ export default async function RosterGrid({ params }: { params: Promise<{ token: 
 
   const [meetings, roles, people] = await Promise.all([upcomingMeetings(today, 8), activeRoles(), activePeople()]);
   const ids = meetings.map((m) => m.id);
-  const [assignments, avail, songs, counts] = await Promise.all([
+  const [assignments, avail, songs, offers, counts] = await Promise.all([
     assignmentsFor(ids),
     availabilityFor(ids),
     songsFor(ids),
+    offersFor(ids),
     recentServingCounts(meetings[0]?.date ?? today),
   ]);
   const suggested = assignments.filter((a) => a.status === "suggested").length;
+  const offeredBy = (meetingId: number, roleId: number) =>
+    offers.filter((o) => o.meetingId === meetingId && o.roleId === roleId).flatMap((o) => people.filter((p) => p.id === o.personId));
+  const waiting = meetings.reduce(
+    (n, m) =>
+      n + roles.filter((r) => offeredBy(m.id, r.id).length && !assignments.some((a) => a.meetingId === m.id && a.roleId === r.id && a.status === "confirmed")).length,
+    0,
+  );
   const open = meetings.reduce(
     (n, m) => n + roles.filter((r) => r.required && !assignments.some((a) => a.meetingId === m.id && a.roleId === r.id && a.status === "confirmed")).length,
     0,
@@ -63,6 +72,7 @@ export default async function RosterGrid({ params }: { params: Promise<{ token: 
             : open === 0
               ? `Every required role is filled for the next ${meetings.length} ${meetings.length === 1 ? "meeting" : "meetings"}.`
               : `${open} required ${open === 1 ? "slot is" : "slots are"} still open across the next ${meetings.length} ${meetings.length === 1 ? "meeting" : "meetings"}.`}
+          {waiting ? ` ${waiting} open ${waiting === 1 ? "slot has" : "slots have"} offers waiting.` : ""}
         </p>
       </div>
 
@@ -124,6 +134,8 @@ export default async function RosterGrid({ params }: { params: Promise<{ token: 
                     </th>
                     {meetings.map((m) => {
                       const a = assignments.find((x) => x.meetingId === m.id && x.roleId === r.id);
+                      const offered = offeredBy(m.id, r.id);
+                      const showOffers = offered.length > 0 && a?.status !== "confirmed";
                       const cls = ["cell-select", !a ? (r.required ? "is-open" : "is-optional") : "", a?.status === "suggested" ? "is-suggested" : ""].join(" ");
                       return (
                         <td key={m.id}>
@@ -138,10 +150,16 @@ export default async function RosterGrid({ params }: { params: Promise<{ token: 
                               { value: "", label: r.required ? "Open" : "Nobody" },
                               ...people.map((p) => ({
                                 value: String(p.id),
-                                label: firstName(p.name) + MARK[statusOf(avail, p, m.id).status],
+                                label:
+                                  firstName(p.name) + MARK[statusOf(avail, p, m.id).status] + (offered.includes(p) ? " · offered" : ""),
                               })),
                             ]}
                           />
+                          {showOffers ? (
+                            <span className="xs muted" style={{ display: "block", marginTop: 2 }}>
+                              Offered: {offered.map((p) => firstName(p.name)).join(", ")}
+                            </span>
+                          ) : null}
                         </td>
                       );
                     })}
