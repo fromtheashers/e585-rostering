@@ -100,6 +100,18 @@ export const assignments = pgTable(
   (t) => [uniqueIndex("assignments_meeting_role").on(t.meetingId, t.roleId)],
 );
 
+/** A member saying "I could do this role on this Friday". An admin still has to put them on it. */
+export const roleOffers = pgTable(
+  "role_offers",
+  {
+    personId: integer("person_id").notNull().references(() => people.id, { onDelete: "cascade" }),
+    meetingId: integer("meeting_id").notNull().references(() => meetings.id, { onDelete: "cascade" }),
+    roleId: integer("role_id").notNull().references(() => roles.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.personId, t.meetingId, t.roleId] })],
+);
+
 /** A song slot in the Praise or Worship set. No leader means an open slot anyone can take. */
 export const songs = pgTable("songs", {
   id: serial("id").primaryKey(),
@@ -135,6 +147,7 @@ export type Role = typeof roles.$inferSelect;
 export type Meeting = typeof meetings.$inferSelect;
 export type Assignment = typeof assignments.$inferSelect;
 export type Song = typeof songs.$inferSelect;
+export type RoleOffer = typeof roleOffers.$inferSelect;
 export type AvailabilityStatus = (typeof availabilityStatus.enumValues)[number];
 export type PreferenceLevel = (typeof preferenceLevel.enumValues)[number];
 export type PersonAccess = (typeof personAccess.enumValues)[number];

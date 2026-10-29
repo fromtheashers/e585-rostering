@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { activePeople, activeRoles, assignmentsFor, availabilityFor, songsFor, upcomingMeetings } from "@/lib/data";
+import { activePeople, activeRoles, assignmentsFor, availabilityFor, offersFor, songsFor, upcomingMeetings } from "@/lib/data";
 import { memberContext } from "@/lib/guard";
-import { takeRole } from "@/lib/actions";
 import { greetingFor, myRoles, panesFor, setsFor } from "@/lib/roster";
 import { longDate, prettyTime, relativeFriday, shortDate } from "@/lib/dates";
-import { Hidden, MiniPanes, StatusPill, Window, openCount, takeKey } from "@/components/ui";
-import { SaveForm } from "@/components/optimistic";
+import { MiniPanes, StatusPill, Window, openCount } from "@/components/ui";
+import { OpenRoleAction } from "@/components/offer";
 import { SongSets } from "@/components/songs";
 
 export default async function Home({ params }: { params: Promise<{ token: string }> }) {
@@ -16,7 +15,7 @@ export default async function Home({ params }: { params: Promise<{ token: string
 
   const [meetings, roles, people] = await Promise.all([upcomingMeetings(today, 8), activeRoles(), activePeople()]);
   const ids = meetings.map((m) => m.id);
-  const [assignments, songs, avail] = await Promise.all([assignmentsFor(ids), songsFor(ids), availabilityFor(ids)]);
+  const [assignments, songs, avail, offers] = await Promise.all([assignmentsFor(ids), songsFor(ids), availabilityFor(ids), offersFor(ids)]);
 
   const next = meetings[0];
   const later = meetings.slice(1);
@@ -71,12 +70,13 @@ export default async function Home({ params }: { params: Promise<{ token: string
               meetingId={next.id}
               me={me}
               openAction={(p) => (
-                <SaveForm action={takeRole} keys={[takeKey(next.id, p.roleId)]}>
-                  <Hidden values={{ token, meetingId: next.id, roleId: p.roleId }} />
-                  <button type="submit" className={`btn sm${p.required ? " primary" : ""}`}>
-                    {p.required ? "Take it" : "I'll do it"}
-                  </button>
-                </SaveForm>
+                <OpenRoleAction
+                  token={token}
+                  meetingId={next.id}
+                  pane={p}
+                  organiser={organiser}
+                  offered={offers.some((o) => o.personId === me.id && o.meetingId === next.id && o.roleId === p.roleId)}
+                />
               )}
             />
           </section>

@@ -119,7 +119,7 @@ export default async function Roles({ params }: { params: Promise<{ token: strin
             <h2 id="pairs-h">Roles one person can do together</h2>
           </div>
           <p className="small muted" style={{ marginBottom: 8 }}>
-            Auto-fill gives each person one role per meeting, except these pairs. People can always sign up for more themselves.
+            Auto-fill gives each person one role per meeting, except these pairs. Admins can still put someone on more than one by hand.
           </p>
           <form action={setPairs} className="panel stack">
             <Hidden values={{ token }} />

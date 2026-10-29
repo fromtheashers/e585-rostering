@@ -28,7 +28,7 @@ Built for one small group of friends rather than a church-wide planning tool: no
 - Roles, one person each: Praise, Worship, Play Guitar, SongSheets, Games. Games is optional; an empty Games slot is never treated as a gap.
 - The Praise leader and the Worship leader each add songs for their set: title, artist and key, all optional.
 - Anyone can add an extra "open song slot" that someone else signs up to lead, so more people can serve.
-- People sign up for open roles themselves; the organiser can also assign people or use auto-fill.
+- Members offer for open roles on each Friday; an admin (or the owner) puts them on, assigns people directly, or uses auto-fill, which picks people who offered first. Admins can take a role for themselves.
 - The link is shared in a group chat (WhatsApp or Telegram).
 
 ## Capabilities and Constraints

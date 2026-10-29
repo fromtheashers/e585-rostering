@@ -104,3 +104,31 @@ test("spreads one keen person across Fridays instead of every week", () => {
   const byOne = out.filter((s) => s.personId === 1).length;
   assert.ok(byOne < 4, `person 1 got ${byOne} of 4`);
 });
+
+test("picks whoever offered for that role on that Friday, even over someone keener", () => {
+  const roles = [{ id: GAMES, required: false, sortOrder: 5 }];
+  const preferences = new Map([["1:5", "love" as const], ["4:5", "rather_not" as const]]);
+  const offers = new Set(["4:10:5"]);
+  const out = autofill(base({ roles, preferences, offers, recentCounts: new Map([[4, 3]]) }));
+  assert.deepEqual(out, [{ meetingId: 10, roleId: GAMES, personId: 4 }]);
+});
+
+test("an offer for one Friday doesn't carry over to the next", () => {
+  const meetings = [
+    { id: 10, date: "2026-11-06" },
+    { id: 11, date: "2026-11-13" },
+  ];
+  const roles = [{ id: PRAISE, required: true, sortOrder: 1 }];
+  const offers = new Set(["3:11:1"]);
+  const out = autofill(base({ meetings, roles, offers, recentCounts: new Map([[3, 5]]) }));
+  assert.equal(out.find((s) => s.meetingId === 10)?.personId === 3, false);
+  assert.equal(out.find((s) => s.meetingId === 11)?.personId, 3);
+});
+
+test("ignores an offer from someone marked away that Friday", () => {
+  const roles = [{ id: PRAISE, required: true, sortOrder: 1 }];
+  const offers = new Set(["2:10:1"]);
+  const availability = new Map([["2:10", "no" as const]]);
+  const out = autofill(base({ roles, offers, availability }));
+  assert.notEqual(out[0].personId, 2);
+});

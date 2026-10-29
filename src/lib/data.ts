@@ -10,7 +10,7 @@ import { addDays, todayIn } from "./dates";
 
 export const PERSON_COOKIE = "e585_person";
 
-const { groups, people, roles, meetings, assignments, songs, availability, rolePreferences, activity } = schema;
+const { groups, people, roles, meetings, assignments, songs, availability, rolePreferences, roleOffers, activity } = schema;
 
 export async function firstGroup(): Promise<Group | null> {
   const rows = await db().select().from(groups).orderBy(asc(groups.id)).limit(1);
@@ -119,6 +119,11 @@ export async function songsFor(meetingIds: number[]) {
 export async function availabilityFor(meetingIds: number[]) {
   if (meetingIds.length === 0) return [];
   return db().select().from(availability).where(inArray(availability.meetingId, meetingIds));
+}
+
+export async function offersFor(meetingIds: number[]) {
+  if (meetingIds.length === 0) return [];
+  return db().select().from(roleOffers).where(inArray(roleOffers.meetingId, meetingIds)).orderBy(asc(roleOffers.createdAt));
 }
 
 export async function preferencesFor(personId?: number) {
