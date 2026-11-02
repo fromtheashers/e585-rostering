@@ -20,7 +20,7 @@ import {
   recentServingCounts,
 } from "./data";
 import { hashPin, needsRehash, newLinkToken, personSignature, verifyPin } from "./secrets";
-import { addDays, isFriday, shortDate, todayIn } from "./dates";
+import { addDays, isFriday, prettyTime, shortDate, todayIn } from "./dates";
 import { autofill } from "./autofill";
 import { firstName, nextHue } from "./palette";
 
@@ -610,6 +610,23 @@ export async function setMeeting(form: FormData) {
     await db().delete(meetings).where(eq(meetings.date, date));
     await log(me, organiser, `called off the meeting on ${shortDate(date)}`);
   }
+  refresh(token);
+}
+
+export async function setMeetingTime(form: FormData) {
+  const { token, me, organiser, group } = await organiserOnly(form);
+  const date = str(form, "date");
+  const time = str(form, "time");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+  if (time !== "" && !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return;
+  const value = time === "" || time === group.startTime ? null : time;
+  const rows = await db().update(meetings).set({ startTime: value }).where(eq(meetings.date, date)).returning({ id: meetings.id });
+  if (rows.length === 0) return;
+  await log(
+    me,
+    organiser,
+    value ? `changed the time for ${shortDate(date)} to ${prettyTime(value)}` : `put ${shortDate(date)} back to the usual time`,
+  );
   refresh(token);
 }
 

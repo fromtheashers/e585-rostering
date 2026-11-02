@@ -1,0 +1,1 @@
+STATUS: DONE. Worker (general-purpose, sonnet) changed src/lib/actions.ts (setMeetingTime), meeting page (admin "Change time" disclosure), calendar page (" · not the usual time" hint). Reported typecheck clean, 16/16 tests, build OK. Assumptions: input is required; clearing done via "Use usual time"; layout not visually checked.
