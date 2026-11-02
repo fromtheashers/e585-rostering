@@ -16,7 +16,7 @@ import {
   statusOf,
 } from "@/lib/data";
 import { memberContext } from "@/lib/guard";
-import { assignRole, dropRole, setAvailability } from "@/lib/actions";
+import { assignRole, dropRole, setAvailability, setMeetingTime } from "@/lib/actions";
 import { coverText, panesFor, setsFor } from "@/lib/roster";
 import { longDate, prettyTime, relativeFriday } from "@/lib/dates";
 import { firstName } from "@/lib/palette";
@@ -77,6 +77,34 @@ export default async function MeetingPage({ params }: { params: Promise<{ token:
         <p className="lede">
           {prettyTime(meeting.startTime ?? group.startTime)} · {past ? "this meeting has passed" : relativeFriday(today, date)}
         </p>
+        {organiser && !past ? (
+          <details className="disclose" style={{ marginTop: 4 }}>
+            <summary className="small muted">Change time</summary>
+            <div className="stack" style={{ marginTop: 8 }}>
+              <form action={setMeetingTime} className="field">
+                <Hidden values={{ token, date }} />
+                <label htmlFor="meeting-time">Start time for this Friday</label>
+                <div className="form-row">
+                  <input key={meeting.startTime ?? group.startTime} id="meeting-time" name="time" type="time" className="input" required defaultValue={meeting.startTime ?? group.startTime} />
+                  <SubmitButton className="btn sm primary" pending="Saving…">
+                    Save
+                  </SubmitButton>
+                </div>
+              </form>
+              {meeting.startTime && meeting.startTime !== group.startTime ? (
+                <form action={setMeetingTime}>
+                  <Hidden values={{ token, date, time: "" }} />
+                  <SubmitButton className="btn sm" pending="Saving…">
+                    Use usual time ({prettyTime(group.startTime)})
+                  </SubmitButton>
+                </form>
+              ) : null}
+              <p className="small muted">
+                To change every Friday, use More › <Link href={`${base}/organiser/settings`}>Settings</Link>.
+              </p>
+            </div>
+          </details>
+        ) : null}
       </div>
 
       <div className="split">

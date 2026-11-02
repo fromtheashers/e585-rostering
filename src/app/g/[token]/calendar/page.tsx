@@ -114,6 +114,7 @@ export default async function CalendarPage({
                         <span className="row-sub">
                           {mine.length ? `You: ${mine.join(", ")}` : past ? "Done" : "Tap to see the roster"}
                           {openSongs ? ` · ${openSongs} open song ${openSongs === 1 ? "slot" : "slots"}` : ""}
+                          {meeting.startTime && meeting.startTime !== group.startTime ? " · not the usual time" : ""}
                         </span>
                       </Link>
                     ) : (
