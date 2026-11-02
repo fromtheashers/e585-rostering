@@ -86,7 +86,7 @@ export default async function MePage({ params }: { params: Promise<{ token: stri
         {servingSoon ? (
           <div>
             {/* A file download, so a plain link rather than client-side navigation. */}
-            <a className="btn sm ghost" href={`${base}/serving.ics`} download="e585-serving.ics">
+            <a className="btn sm ghost" href={`${base}/serving.ics`} download="serving.ics">
               <CalendarPlus size={16} aria-hidden /> Add my serving dates to my calendar
             </a>
           </div>

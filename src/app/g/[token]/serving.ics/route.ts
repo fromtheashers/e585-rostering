@@ -41,7 +41,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//E585 Rostering//Serving dates//EN",
+    "PRODID:-//Rostering//Serving dates//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     `X-WR-CALNAME:${esc(`${group.name} serving`)}`,
@@ -55,7 +55,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     const url = `${origin}/g/${token}/m/${m.date}`;
     lines.push(
       "BEGIN:VEVENT",
-      `UID:e585-${group.id}-${m.id}-${me.id}@e585-rostering`,
+      `UID:serving-${group.id}-${m.id}-${me.id}@rostering`,
       `DTSTAMP:${stamp}`,
       `DTSTART:${m.date.replace(/-/g, "")}T${time}00`,
       `SUMMARY:${esc(`${group.name}: ${joinList(mine)}`)}`,
@@ -69,7 +69,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
   return new Response(lines.map(fold).join("\r\n") + "\r\n", {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
-      "Content-Disposition": 'attachment; filename="e585-serving.ics"',
+      "Content-Disposition": 'attachment; filename="serving.ics"',
       "Cache-Control": "private, no-store",
       "Referrer-Policy": "no-referrer",
     },

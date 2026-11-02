@@ -22,7 +22,7 @@ export default async function Setup() {
       <StateForm action={createGroup} className="panel stack-lg">
         <div className="field">
           <label htmlFor="name">Group name</label>
-          <input className="input" id="name" name="name" defaultValue="E585" required maxLength={60} autoComplete="off" />
+          <input className="input" id="name" name="name" placeholder="For example, Grace Group" required maxLength={60} autoComplete="off" />
         </div>
         <div className="field">
           <label htmlFor="startTime">Usual start time on Fridays</label>

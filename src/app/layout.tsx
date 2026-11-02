@@ -6,13 +6,24 @@ import "@fontsource/instrument-serif/400.css";
 import "@fontsource/instrument-serif/400-italic.css";
 import "./globals.css";
 import { TouchActive } from "@/components/client";
+import { publicGroup } from "./(public)/group";
 
-export const metadata: Metadata = {
-  title: { default: "E585 Rostering", template: "%s · E585 Rostering" },
-  description: "Who's serving on Friday, what's still open, and the songs.",
-  robots: { index: false, follow: false },
-  referrer: "no-referrer",
-};
+/** Titles the app "<group name> Rostering"; falls back to plain "Rostering" with no group or no database. */
+export async function generateMetadata(): Promise<Metadata> {
+  let name: string | null = null;
+  try {
+    name = (await publicGroup())?.name?.trim() || null;
+  } catch {
+    name = null;
+  }
+  const brand = name ? `${name} Rostering` : "Rostering";
+  return {
+    title: { default: brand, template: `%s · ${brand}` },
+    description: "Who's serving on Friday, what's still open, and the songs.",
+    robots: { index: false, follow: false },
+    referrer: "no-referrer",
+  };
+}
 
 export const viewport: Viewport = {
   width: "device-width",
