@@ -53,7 +53,7 @@ export default async function Settings({
           <label htmlFor="name">Group name</label>
           <input className="input" id="name" name="name" defaultValue={group.name} maxLength={60} required />
         </div>
-        <div className="form-row" style={{ gridTemplateColumns: "1fr 1fr" }}>
+        <div className="field-pair">
           <div className="field">
             <label htmlFor="startTime">Usual start time</label>
             <input className="input" id="startTime" name="startTime" type="time" defaultValue={group.startTime} required />

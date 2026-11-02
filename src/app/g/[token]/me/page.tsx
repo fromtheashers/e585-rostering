@@ -167,7 +167,7 @@ export default async function MePage({ params }: { params: Promise<{ token: stri
             <label htmlFor="current">Current PIN</label>
             <input className="input" id="current" name="current" type="password" inputMode="numeric" pattern="[0-9]{4,6}" maxLength={6} required autoComplete="current-password" />
           </div>
-          <div className="form-row" style={{ gridTemplateColumns: "1fr 1fr" }}>
+          <div className="field-pair">
             <div className="field">
               <label htmlFor="pin">New PIN</label>
               <input className="input" id="pin" name="pin" type="password" inputMode="numeric" pattern="[0-9]{4,6}" maxLength={6} required autoComplete="new-password" />

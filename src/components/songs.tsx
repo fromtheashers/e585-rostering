@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowDown, ArrowUp, Plus } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronRight, Plus } from "lucide-react";
 import type { Person, Role, Song } from "@/db/schema";
 import { addOpenSlot, addSong, claimSong, moveSong, releaseSong, removeSong, updateSong } from "@/lib/actions";
 import { firstName } from "@/lib/palette";
@@ -123,7 +123,10 @@ function SongRowBody({
       <KeyBadge songKey={song.songKey} />
       {!compact && !readOnly && (mine || canEdit) ? (
         <details className="disclose" style={{ gridColumn: "1 / -1" }}>
-          <summary className="small muted">Edit</summary>
+          <summary className="small muted">
+            <ChevronRight size={16} aria-hidden />
+            Edit
+          </summary>
           <div className="stack" style={{ paddingBottom: 8 }}>
             <SongFields action={updateSong} hidden={{ token, songId: song.id }} song={song} submit="Save song" people={people} />
             <div className="actions">

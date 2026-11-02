@@ -1,0 +1,1 @@
+WS-1 report: STATUS DONE. globals.css (.field minmax, .input/.select min-width0 height tap, .form-row children, .field-pair, iOS time/date rules); settings/me/who[id] use .field-pair. Verified 390: time right 190 vs select left 200, labels equal; 320 stacks. typecheck clean, 16/16. Note: used temporary stash for baseline.

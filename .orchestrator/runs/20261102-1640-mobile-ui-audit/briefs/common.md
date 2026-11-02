@@ -1,0 +1,6 @@
+SHARED CONTEXT (both workstreams)
+- Repo: /home/claude/e585-rostering (Next.js app router, React, plain CSS in src/app/globals.css, lucide-react icons). Do not commit.
+- A dev server is ALREADY running at http://localhost:3005 against a local test database (group link token 6sns-bez8-ra27; sign in as "Asher Wong", PIN 1234). Do not start or stop servers. It hot-reloads your edits.
+- Audit tooling (read-only, run with: cd /home/claude/e585-rostering && NODE_PATH=$(npm root -g) node <script>):
+  - /var/tmp/e585shots.js [outdir] : signs in, screenshots 17 screens at 390px dark and 320px light into outdir (default /var/tmp/e585shots; pass your own outdir e.g. /var/tmp/ws1shots after mkdir), and prints per-screen "page scrolls sideways", "off-screen" and "overlap" findings. Overlaps against the bottom tab bar links "Home"/"Calendar"/"Me"/"More" are artefacts of full-page screenshots with a fixed bar: ignore them. Off-screen items inside the roster grid (/organiser/roster, select.cell-select and Fri date links) are inside an intentional horizontal scroller: ignore them.
+- Style: plain friendly wording, no em-dashes. Respect prefers-reduced-motion (existing rule at the end of globals.css already disables the summary svg transition).

@@ -51,7 +51,7 @@ export default async function SignIn({
       <StateForm action={signIn} className="panel stack">
         <Hidden values={{ token, personId: p.id, next: next ?? "" }} />
         {fresh ? (
-          <div className="form-row" style={{ gridTemplateColumns: "1fr 1fr" }}>
+          <div className="field-pair">
             <div className="field">
               <label htmlFor="pin">New PIN</label>
               <input {...pinInput} id="pin" name="pin" autoFocus autoComplete="new-password" />
