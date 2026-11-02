@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 import {
   activePeople,
   activeRoles,
@@ -79,7 +79,10 @@ export default async function MeetingPage({ params }: { params: Promise<{ token:
         </p>
         {organiser && !past ? (
           <details className="disclose" style={{ marginTop: 4 }}>
-            <summary className="small muted">Change time</summary>
+            <summary className="small muted">
+              <ChevronRight size={16} aria-hidden />
+              Change time
+            </summary>
             <div className="stack" style={{ marginTop: 8 }}>
               <form action={setMeetingTime} className="field">
                 <Hidden values={{ token, date }} />
@@ -185,7 +188,10 @@ export default async function MeetingPage({ params }: { params: Promise<{ token:
                     {organiser && !past ? (
                       p.person && !p.suggested ? (
                         <details className="disclose" style={{ marginTop: 4 }}>
-                          <summary className="small muted">Change who&rsquo;s on {p.roleName}</summary>
+                          <summary className="small muted">
+                            <ChevronRight size={16} aria-hidden />
+                            Change who&rsquo;s on {p.roleName}
+                          </summary>
                           <AssignSelect token={token} meetingId={meeting.id} pane={p} people={people} avail={avail} offered={offeredBy} />
                         </details>
                       ) : (
@@ -228,7 +234,7 @@ export default async function MeetingPage({ params }: { params: Promise<{ token:
                           </ul>
                         )}
                         <div className="actions" style={{ marginTop: 10 }}>
-                          <CopyButton text={coverText({ roleName: p.roleName, date, link })} label='Copy a "can anyone cover?" message' />
+                          <CopyButton text={coverText({ roleName: p.roleName, date, link })} label="Copy cover request" />
                           <ShareButtons text={coverText({ roleName: p.roleName, date, link })} />
                         </div>
                       </div>
@@ -301,9 +307,9 @@ function RoleHead({
   children?: React.ReactNode;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+    <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
       {person ? <Avatar person={person} /> : <span className="avatar" style={{ background: "transparent", border: "1px dashed var(--ink)" }} aria-hidden />}
-      <span className="row-main">
+      <span className="row-main" style={{ flex: "1 1 160px", minWidth: 0 }}>
         <strong>{roleName}</strong>
         <span className="row-sub">{sub}</span>
       </span>

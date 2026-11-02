@@ -1,0 +1,263 @@
+== 390 /
+== 390 /calendar
+== 390 /m/2026-11-06
+== 390 /sign-in
+== 390 /setup
+== 390 /g/<t>/who
+== 390 /g/<t>
+== 390 /g/<t>/calendar
+   overlap 66x14: h2#m-2026-12 "December 2026" <> a "Home"
+   overlap 63x14: h2#m-2026-12 "December 2026" <> a "Calendar"
+== 390 /g/<t>/m/2026-11-06
+   overlap 44x23: h2#roles-h "Roles" <> a "Home"
+== 390 /g/<t>/m/2026-11-13
+   overlap 65x11: button.btn.sm "I'll do it" <> a "Home"
+   overlap 8x11: button.btn.sm "I'll do it" <> a "Calendar"
+== 390 /g/<t>/m/2026-10-30
+   overlap 38x20: strong "Play Guitar" <> a "Home"
+   overlap 98x20: strong "Play Guitar" <> a "Calendar"
+   overlap 98x20: strong "Play Guitar" <> a "Me"
+   overlap 82x20: strong "Play Guitar" <> a "More"
+== 390 /g/<t>/me
+   overlap 53x35: label "Love" <> a "Home"
+   overlap 53x35: input "love" <> a "Home"
+   overlap 8x35: label "Happy" <> a "Home"
+   overlap 56x35: label "Happy" <> a "Calendar"
+   overlap 8x35: input "happy" <> a "Home"
+   overlap 56x35: input "happy" <> a "Calendar"
+   overlap 39x35: label "Rather not" <> a "Calendar"
+   overlap 49x35: label "Rather not" <> a "Me"
+   overlap 39x35: input "rather_not" <> a "Calendar"
+   overlap 49x35: input "rather_not" <> a "Me"
+== 390 /g/<t>/more
+   overlap 66x18: a.row "Meeting Fridays
+Add or call of" <> a "Home"
+   overlap 98x18: a.row "Meeting Fridays
+Add or call of" <> a "Calendar"
+   overlap 98x18: a.row "Meeting Fridays
+Add or call of" <> a "Me"
+   overlap 66x18: a.row "Meeting Fridays
+Add or call of" <> a "More"
+   overlap 66x40: a.row "People
+Add or remove names, ad" <> a "Home"
+   overlap 98x40: a.row "People
+Add or remove names, ad" <> a "Calendar"
+   overlap 98x40: a.row "People
+Add or remove names, ad" <> a "Me"
+   overlap 66x40: a.row "People
+Add or remove names, ad" <> a "More"
+   overlap 66x22: strong "People" <> a "Home"
+   overlap 98x22: strong "People" <> a "Calendar"
+   overlap 98x22: strong "People" <> a "Me"
+   overlap 36x22: strong "People" <> a "More"
+== 390 /g/<t>/organiser/people
+   overlap 82x38: summary.small.muted "Edit Bethany" <> a "Home"
+   overlap 98x38: summary.small.muted "Edit Bethany" <> a "Calendar"
+   overlap 98x38: summary.small.muted "Edit Bethany" <> a "Me"
+   overlap 82x38: summary.small.muted "Edit Bethany" <> a "More"
+== 390 /g/<t>/organiser/roles
+   overlap 82x3: summary.small.muted "Edit Worship" <> a "Home"
+   overlap 98x3: summary.small.muted "Edit Worship" <> a "Calendar"
+   overlap 98x3: summary.small.muted "Edit Worship" <> a "Me"
+   overlap 82x3: summary.small.muted "Edit Worship" <> a "More"
+   overlap 82x19: label "Name" <> a "Home"
+   overlap 98x19: label "Name" <> a "Calendar"
+   overlap 98x19: label "Name" <> a "Me"
+   overlap 82x19: label "Name" <> a "More"
+   overlap 82x30: input#r2-name.input "Worship" <> a "Home"
+   overlap 98x30: input#r2-name.input "Worship" <> a "Calendar"
+   overlap 98x30: input#r2-name.input "Worship" <> a "Me"
+   overlap 82x30: input#r2-name.input "Worship" <> a "More"
+== 390 /g/<t>/organiser/roster
+   off-screen: a "Fri 20 Nov" (389..450)
+   off-screen: a "Fri 4 Dec" (517..571)
+   off-screen: select.cell-select.is-open "Open
+Asher
+Bethany
+Chen
+Daniel" (389..501)
+   off-screen: select.cell-select.is-open "Open
+Asher
+Bethany
+Chen
+Daniel" (517..629)
+   off-screen: select.cell-select.is-optional "Nobody
+Asher
+Bethany
+Chen
+Dani" (389..501)
+   off-screen: select.cell-select.is-optional "Nobody
+Asher
+Bethany
+Chen
+Dani" (517..629)
+   overlap 31x9: select.cell-select.is-suggested "Open
+Asher
+Bethany
+Chen
+Daniel" <> a "Me"
+   overlap 81x9: select.cell-select.is-suggested "Open
+Asher
+Bethany
+Chen
+Daniel" <> a "More"
+   overlap 62x22: select.cell-select.is-optional "Nobody
+Asher
+Bethany
+Chen
+Dani" <> a "Calendar"
+   overlap 50x22: select.cell-select.is-optional "Nobody
+Asher
+Bethany
+Chen
+Dani" <> a "Me"
+   overlap 31x22: select.cell-select.is-optional "Nobody
+Asher
+Bethany
+Chen
+Dani" <> a "Me"
+   overlap 81x22: select.cell-select.is-optional "Nobody
+Asher
+Bethany
+Chen
+Dani" <> a "More"
+== 390 /g/<t>/organiser/settings
+== 320 /
+== 320 /calendar
+== 320 /m/2026-11-06
+== 320 /sign-in
+== 320 /setup
+== 320 /g/<t>/who
+   overlap 64x43: h2#taken-h "Already made your PIN?" <> a "Home"
+   overlap 74x43: h2#taken-h "Already made your PIN?" <> a "Calendar"
+   overlap 64x3: a.row "AW
+Asher Wong
+Enter PIN" <> a "Home"
+   overlap 80x3: a.row "AW
+Asher Wong
+Enter PIN" <> a "Calendar"
+   overlap 80x3: a.row "AW
+Asher Wong
+Enter PIN" <> a "Me"
+   overlap 64x3: a.row "AW
+Asher Wong
+Enter PIN" <> a "More"
+== 320 /g/<t>
+== 320 /g/<t>/calendar
+== 320 /g/<t>/m/2026-11-06
+   overlap 44x23: h2#roles-h "Roles" <> a "Home"
+== 320 /g/<t>/m/2026-11-13
+   overlap 47x11: button.btn.sm "I'll do it" <> a "Home"
+   overlap 26x11: button.btn.sm "I'll do it" <> a "Calendar"
+== 320 /g/<t>/m/2026-10-30
+   overlap 20x20: strong "Play Guitar" <> a "Home"
+   overlap 80x20: strong "Play Guitar" <> a "Calendar"
+   overlap 80x20: strong "Play Guitar" <> a "Me"
+   overlap 64x20: strong "Play Guitar" <> a "More"
+== 320 /g/<t>/me
+   overlap 64x36: a.btn.sm "Add my serving dates to my cal" <> a "Home"
+   overlap 80x36: a.btn.sm "Add my serving dates to my cal" <> a "Calendar"
+   overlap 80x36: a.btn.sm "Add my serving dates to my cal" <> a "Me"
+   overlap 54x36: a.btn.sm "Add my serving dates to my cal" <> a "More"
+== 320 /g/<t>/more
+   overlap 48x43: a.row "Roster grid
+See every Friday a" <> a "Home"
+   overlap 80x43: a.row "Roster grid
+See every Friday a" <> a "Calendar"
+   overlap 80x43: a.row "Roster grid
+See every Friday a" <> a "Me"
+   overlap 48x43: a.row "Roster grid
+See every Friday a" <> a "More"
+   overlap 48x15: a.row "Meeting Fridays
+Add or call of" <> a "Home"
+   overlap 80x15: a.row "Meeting Fridays
+Add or call of" <> a "Calendar"
+   overlap 80x15: a.row "Meeting Fridays
+Add or call of" <> a "Me"
+   overlap 48x15: a.row "Meeting Fridays
+Add or call of" <> a "More"
+   overlap 48x5: strong "Meeting Fridays" <> a "Home"
+   overlap 80x5: strong "Meeting Fridays" <> a "Calendar"
+   overlap 80x5: strong "Meeting Fridays" <> a "Me"
+   overlap 18x5: strong "Meeting Fridays" <> a "More"
+== 320 /g/<t>/organiser/people
+   overlap 20x22: strong "Bethany Tan" <> a "Home"
+   overlap 80x22: strong "Bethany Tan" <> a "Calendar"
+   overlap 80x22: strong "Bethany Tan" <> a "Me"
+   overlap 64x22: strong "Bethany Tan" <> a "More"
+   overlap 64x14: summary.small.muted "Edit Bethany" <> a "Home"
+   overlap 80x14: summary.small.muted "Edit Bethany" <> a "Calendar"
+   overlap 80x14: summary.small.muted "Edit Bethany" <> a "Me"
+   overlap 64x14: summary.small.muted "Edit Bethany" <> a "More"
+== 320 /g/<t>/organiser/roles
+   overlap 36x8: button.btn.sm "" <> a "Me"
+   overlap 10x8: button.btn.sm "" <> a "More"
+   overlap 46x8: button.btn.sm "" <> a "More"
+   overlap 64x37: summary.small.muted "Edit Worship" <> a "Home"
+   overlap 80x37: summary.small.muted "Edit Worship" <> a "Calendar"
+   overlap 80x37: summary.small.muted "Edit Worship" <> a "Me"
+   overlap 64x37: summary.small.muted "Edit Worship" <> a "More"
+== 320 /g/<t>/organiser/roster
+   off-screen: a "Fri 20 Nov" (389..450)
+   off-screen: a "Fri 4 Dec" (517..571)
+   off-screen: select.cell-select.is-open "Open
+Asher
+Bethany
+Chen
+Daniel" (261..373)
+   off-screen: select.cell-select.is-open "Open
+Asher
+Bethany
+Chen
+Daniel" (389..501)
+   off-screen: select.cell-select.is-open "Open
+Asher
+Bethany
+Chen
+Daniel" (517..629)
+   off-screen: select.cell-select.is-suggested "Open
+Asher
+Bethany
+Chen
+Daniel" (261..373)
+   off-screen: select.cell-select.is-optional "Nobody
+Asher
+Bethany
+Chen
+Dani" (261..373)
+   off-screen: select.cell-select.is-optional "Nobody
+Asher
+Bethany
+Chen
+Dani" (389..501)
+   off-screen: select.cell-select.is-optional "Nobody
+Asher
+Bethany
+Chen
+Dani" (517..629)
+   overlap 27x24: select.cell-select.is-open "Open
+Asher
+Bethany
+Chen
+Daniel" <> a "Calendar"
+   overlap 80x24: select.cell-select.is-open "Open
+Asher
+Bethany
+Chen
+Daniel" <> a "Me"
+   overlap 5x24: select.cell-select.is-open "Open
+Asher
+Bethany
+Chen
+Daniel" <> a "More"
+   overlap 59x34: select.cell-select.is-suggested "Open
+Asher
+Bethany
+Chen
+Daniel" <> a "More"
+== 320 /g/<t>/organiser/settings
+   overlap 48x6: button.btn.sm "Copy link" <> a "Home"
+   overlap 63x6: button.btn.sm "Copy link" <> a "Calendar"
+   overlap 9x6: button.btn.sm "Make a new link" <> a "Calendar"
+   overlap 80x6: button.btn.sm "Make a new link" <> a "Me"
+   overlap 36x6: button.btn.sm "Make a new link" <> a "More"

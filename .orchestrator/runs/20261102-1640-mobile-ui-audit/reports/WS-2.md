@@ -1,0 +1,1 @@
+WS-2 report: STATUS DONE. RoleHead wraps; chevrons on 5 summaries; Retire button moved into Save actions row via form= attribute (plain button, lost pending label); cover button label shortened to 'Copy cover request' (real cause of 8px overflow). typecheck src clean, 16/16.

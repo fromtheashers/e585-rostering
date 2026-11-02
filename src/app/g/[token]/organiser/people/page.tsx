@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 import { allPeople } from "@/lib/data";
 import { organiserContext } from "@/lib/guard";
 import { addPerson, renamePerson, resetPin, setAccess, setPersonActive, setPersonHue } from "@/lib/actions";
@@ -72,7 +72,10 @@ export default async function People({
                   </span>
                 </div>
                 <details className="disclose">
-                  <summary className="small muted">Edit {p.name.split(" ")[0]}</summary>
+                  <summary className="small muted">
+                    <ChevronRight size={16} aria-hidden />
+                    Edit {p.name.split(" ")[0]}
+                  </summary>
                   <div className="stack" style={{ paddingBottom: 12 }}>
                     <form action={renamePerson} className="form-row">
                       <Hidden values={{ token, personId: p.id }} />

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowDown, ArrowLeft, ArrowUp } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, ChevronRight } from "lucide-react";
 import { allRoles } from "@/lib/data";
 import { organiserContext } from "@/lib/guard";
 import { addRole, moveRole, setPairs, setRoleActive, updateRole } from "@/lib/actions";
@@ -79,7 +79,10 @@ export default async function Roles({ params }: { params: Promise<{ token: strin
               ) : null}
             </div>
             <details className="disclose">
-              <summary className="small muted">Edit {r.name}</summary>
+              <summary className="small muted">
+                <ChevronRight size={16} aria-hidden />
+                Edit {r.name}
+              </summary>
               <StateForm action={updateRole} className="stack" >
                 <Hidden values={{ token, roleId: r.id }} />
                 <RoleFields id={`r${r.id}`} role={r} />
@@ -87,13 +90,13 @@ export default async function Roles({ params }: { params: Promise<{ token: strin
                   <SubmitButton className="btn sm primary" pending="Saving…">
                     Save
                   </SubmitButton>
+                  <button className="btn sm danger" type="submit" form={`retire-${r.id}`}>
+                    Retire this role
+                  </button>
                 </div>
               </StateForm>
-              <form action={setRoleActive} style={{ padding: "8px 0 12px" }}>
+              <form id={`retire-${r.id}`} action={setRoleActive} style={{ paddingBottom: 12 }}>
                 <Hidden values={{ token, roleId: r.id, active: "0" }} />
-                <SubmitButton className="btn sm danger" pending="Retiring…">
-                  Retire this role
-                </SubmitButton>
               </form>
             </details>
           </li>

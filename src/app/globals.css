@@ -782,6 +782,7 @@ a.pane:focus-visible {
 
 .field {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
 }
 
@@ -799,6 +800,9 @@ a.pane:focus-visible {
 .input,
 .select {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: var(--tap);
   min-height: var(--tap);
   padding: 0 14px;
   border-radius: var(--radius-sm);
@@ -836,6 +840,51 @@ a.pane:focus-visible {
   gap: 10px;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
+}
+
+.form-row > * {
+  min-width: 0;
+}
+
+.form-row > .btn {
+  min-width: max-content;
+}
+
+/* Two fields side by side. minmax(0, 1fr) lets each column shrink below
+   its content, so iPhone time boxes cannot spill into the neighbour. */
+.field-pair {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+}
+
+.field-pair > .field {
+  min-width: 0;
+}
+
+@media (max-width: 359px) {
+  .field-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* iPhone Safari gives time and date boxes their own size and centred text. */
+input.input[type="time"],
+input.input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  min-width: 0;
+  line-height: var(--tap);
+  text-align: left;
+}
+
+input.input[type="time"]::-webkit-date-and-time-value,
+input.input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;
+  min-height: 1.2em;
 }
 
 .check {
