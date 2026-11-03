@@ -14,7 +14,7 @@ export default async function PublicLayout({ children }: { children: React.React
         <div className="shell topbar-inner">
           <Link href="/" className="brand">
             <Mark />
-            <span>{group?.name ?? "E585 Rostering"}</span>
+            <span>{group?.name ?? "Rostering"}</span>
           </Link>
           <PublicNav />
           <Link href="/sign-in" className="btn sm topbar-signin">
