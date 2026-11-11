@@ -698,6 +698,7 @@ a.row {
   font-size: var(--fs-sm);
   font-weight: 500;
   opacity: 0.86;
+  overflow-wrap: anywhere;
 }
 
 .pane-name {
@@ -709,6 +710,7 @@ a.row {
 
 .pane-foot {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -717,6 +719,7 @@ a.row {
 
 .pane-you {
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
   height: 22px;
   padding: 0 8px;
