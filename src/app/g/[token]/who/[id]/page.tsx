@@ -33,7 +33,7 @@ export default async function SignIn({
   const fresh = !p.pinHash;
 
   return (
-    <main className="shell page" style={{ maxWidth: 520 }}>
+    <main id="main-content" tabIndex={-1} className="shell page" style={{ maxWidth: 520 }}>
       <Link href={`/g/${token}/who`} className="backlink">
         <ArrowLeft size={18} aria-hidden /> Not {firstName(p.name)}?
       </Link>

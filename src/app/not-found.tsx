@@ -2,7 +2,7 @@ import { Mark } from "@/components/ui";
 
 export default function NotFound() {
   return (
-    <main className="shell page" style={{ maxWidth: 520 }}>
+    <main id="main-content" tabIndex={-1} className="shell page" style={{ maxWidth: 520 }}>
       <Mark size={40} />
       <h1 className="greeting">This link doesn&rsquo;t open anything.</h1>
       <p className="lede">

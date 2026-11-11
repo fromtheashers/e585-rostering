@@ -17,7 +17,7 @@ export default async function ClaimOwner({ params }: { params: Promise<{ token: 
   if (!group.pinHash || (await ownerOf())) redirect(`${base}/more`);
 
   return (
-    <main className="shell page" style={{ maxWidth: 520 }}>
+    <main id="main-content" tabIndex={-1} className="shell page" style={{ maxWidth: 520 }}>
       <Link href={`${base}/more`} className="backlink">
         <ArrowLeft size={18} aria-hidden /> Back
       </Link>

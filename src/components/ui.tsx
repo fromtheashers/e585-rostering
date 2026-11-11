@@ -1,4 +1,4 @@
-import { Fragment, type CSSProperties, type ReactNode } from "react";
+import { type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
 import type { Person } from "@/db/schema";
 import { JEWELS, firstName, initials, jewel } from "@/lib/palette";
@@ -57,7 +57,7 @@ type Who = Pick<Person, "id" | "name" | "hue">;
 
 function FilledPane({ pane, person, mine, href }: { pane: PaneData; person: Who; mine: boolean; href: string }) {
   return (
-    <Link role="listitem" href={href} className="pane" style={jewelStyle(person.hue)} aria-label={`${pane.roleName}: ${mine ? "you" : person.name}`}>
+    <Link href={href} className="pane" style={jewelStyle(person.hue)} aria-label={`${pane.roleName}: ${mine ? "you" : person.name}`}>
       <span className="pane-foot">
         <span className="pane-role">{pane.roleName}</span>
         {mine ? <span className="pane-you">You</span> : null}
@@ -69,7 +69,7 @@ function FilledPane({ pane, person, mine, href }: { pane: PaneData; person: Who;
 
 function OpenPane({ pane, children }: { pane: PaneData; children?: ReactNode }) {
   return (
-    <div role="listitem" className={`pane ${pane.required ? "open" : "optional"}`}>
+    <div className={`pane ${pane.required ? "open" : "optional"}`}>
       <span className="pane-role">
         {pane.roleName}
         {pane.required ? "" : " · optional"}
@@ -107,25 +107,31 @@ export function Window({
   me?: Who;
 }) {
   return (
-    <div className="window" style={{ "--n": panes.length } as CSSProperties} role="list" aria-label={label}>
-      {panes.map((p) => {
-        if (p.person && !p.suggested) {
-          const filled = <FilledPane pane={p} person={p.person} mine={p.person.id === meId} href={href(p.roleId)} />;
-          if (meetingId === undefined) return <Fragment key={p.roleId}>{filled}</Fragment>;
+    <div className="window-frame">
+      <ul className="window" style={{ "--n": panes.length } as CSSProperties} aria-label={label}>
+        {panes.map((p) => {
+          if (p.person && !p.suggested) {
+            const filled = <FilledPane pane={p} person={p.person} mine={p.person.id === meId} href={href(p.roleId)} />;
+            if (meetingId === undefined) return <li key={p.roleId}>{filled}</li>;
+            return (
+              <li key={p.roleId}>
+                <Pending on={dropKey(meetingId, p.roleId)} show={<OpenPane pane={p} />}>
+                  {filled}
+                </Pending>
+              </li>
+            );
+          }
+          const open = <OpenPane pane={p}>{openAction?.(p)}</OpenPane>;
+          if (meetingId === undefined || !me) return <li key={p.roleId}>{open}</li>;
           return (
-            <Pending key={p.roleId} on={dropKey(meetingId, p.roleId)} show={<OpenPane pane={p} />}>
-              {filled}
-            </Pending>
+            <li key={p.roleId}>
+              <Pending on={takeKey(meetingId, p.roleId)} show={<FilledPane pane={p} person={me} mine href={href(p.roleId)} />}>
+                {open}
+              </Pending>
+            </li>
           );
-        }
-        const open = <OpenPane pane={p}>{openAction?.(p)}</OpenPane>;
-        if (meetingId === undefined || !me) return <Fragment key={p.roleId}>{open}</Fragment>;
-        return (
-          <Pending key={p.roleId} on={takeKey(meetingId, p.roleId)} show={<FilledPane pane={p} person={me} mine href={href(p.roleId)} />}>
-            {open}
-          </Pending>
-        );
-      })}
+        })}
+      </ul>
     </div>
   );
 }

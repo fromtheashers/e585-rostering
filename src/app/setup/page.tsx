@@ -10,7 +10,7 @@ export const metadata = { title: "Set up" };
 export default async function Setup() {
   if (await firstGroup()) redirect("/");
   return (
-    <main className="shell page" style={{ maxWidth: 560 }}>
+    <main id="main-content" tabIndex={-1} className="shell page" style={{ maxWidth: 560 }}>
       <Mark size={40} />
       <div>
         <h1 className="greeting">Set up your group&rsquo;s roster.</h1>

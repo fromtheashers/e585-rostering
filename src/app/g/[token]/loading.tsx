@@ -4,7 +4,7 @@
  */
 export default function Loading() {
   return (
-    <main className="shell page loading" aria-busy="true" aria-label="Loading">
+    <main id="main-content" tabIndex={-1} className="shell page loading" aria-busy="true" aria-label="Loading">
       <div>
         <div className="bone bone-title" />
         <div className="bone bone-line" />

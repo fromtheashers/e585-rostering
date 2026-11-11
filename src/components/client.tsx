@@ -198,21 +198,34 @@ export function ConfirmButton({
   className?: string;
 }) {
   const [asking, setAsking] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const cancel = useRef<HTMLButtonElement>(null);
+  const previous = useRef(false);
+  useEffect(() => {
+    if (asking) cancel.current?.focus();
+    else if (previous.current) trigger.current?.focus();
+    previous.current = asking;
+  }, [asking]);
   if (!asking) {
     return (
-      <button type="button" className={className} onClick={() => setAsking(true)}>
+      <button ref={trigger} type="button" className={className} onClick={() => setAsking(true)}>
         {children}
       </button>
     );
   }
   return (
-    <span className="actions" role="group" aria-label={question}>
+    <span className="actions" role="group" aria-label={question} onKeyDown={(e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setAsking(false);
+      }
+    }}>
       <span className="small">{question}</span>
       <SubmitButton className="btn sm danger" pending="Working…">
         {confirm}
       </SubmitButton>
-      <button type="button" className="btn sm ghost" onClick={() => setAsking(false)}>
-        Keep
+      <button ref={cancel} type="button" className="btn sm ghost" onClick={() => setAsking(false)}>
+        Cancel
       </button>
     </span>
   );
@@ -262,20 +275,22 @@ export function TabBar({ base }: { base: string }) {
   );
 }
 
-export function Toast({ message }: { message: string }) {
+export function Toast({ message, persistent = false }: { message: string; persistent?: boolean }) {
   const [phase, setPhase] = useState<"shown" | "leaving" | "gone">("shown");
   useEffect(() => {
+    if (persistent) return;
     const leave = setTimeout(() => setPhase("leaving"), 2600);
     const gone = setTimeout(() => setPhase("gone"), 2800);
     return () => {
       clearTimeout(leave);
       clearTimeout(gone);
     };
-  }, []);
+  }, [persistent]);
   if (phase === "gone") return null;
   return (
-    <div className={phase === "leaving" ? "toast is-leaving" : "toast"} role="status">
-      {message}
+    <div className={phase === "leaving" ? "toast is-leaving" : "toast"}>
+      <span role="status">{message}</span>
+      {persistent ? <button type="button" className="toast-dismiss" onClick={() => setPhase("gone")}>Dismiss</button> : null}
     </div>
   );
 }

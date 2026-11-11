@@ -68,7 +68,7 @@ export default async function MeetingPage({ params }: { params: Promise<{ token:
   );
 
   return (
-    <main className="shell page">
+    <main id="main-content" tabIndex={-1} className="shell page">
       <Link href={base} className="backlink">
         <ArrowLeft size={18} aria-hidden /> Home
       </Link>

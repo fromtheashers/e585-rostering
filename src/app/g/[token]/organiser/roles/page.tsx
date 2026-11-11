@@ -42,7 +42,7 @@ export default async function Roles({ params }: { params: Promise<{ token: strin
   const pairs = active.flatMap((a, i) => active.slice(i + 1).map((b) => [a, b] as const));
 
   return (
-    <main className="shell page" style={{ maxWidth: 760 }}>
+    <main id="main-content" tabIndex={-1} className="shell page" style={{ maxWidth: 760 }}>
       <Link href={`${base}/more`} className="backlink">
         <ArrowLeft size={18} aria-hidden /> More
       </Link>

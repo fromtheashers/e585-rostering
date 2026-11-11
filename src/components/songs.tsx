@@ -4,7 +4,7 @@ import type { Person, Role, Song } from "@/db/schema";
 import { addOpenSlot, addSong, claimSong, moveSong, releaseSong, removeSong, updateSong } from "@/lib/actions";
 import { firstName } from "@/lib/palette";
 import { Avatar, Hidden } from "./ui";
-import { StateForm, SubmitButton } from "./client";
+import { ConfirmButton, StateForm, SubmitButton } from "./client";
 import { AddSongForm, DraftRows, Pending, SaveForm, SongDrafts, UnlessDrafts } from "./optimistic";
 
 export const KEY_OPTIONS = ["C", "C#", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B", "Cm", "C#m", "Dm", "Ebm", "Em", "Fm", "F#m", "Gm", "G#m", "Am", "Bbm", "Bm"];
@@ -106,9 +106,9 @@ function SongRowBody({
           {canEdit && !compact ? (
             <SaveForm action={removeSong} keys={[`remove:${song.id}`]}>
               <Hidden values={{ token, songId: song.id }} />
-              <button type="submit" className="btn sm ghost">
+              <ConfirmButton question="Remove this open song slot?" confirm="Remove slot">
                 Remove
-              </button>
+              </ConfirmButton>
             </SaveForm>
           ) : null}
         </OpenSlot>
@@ -149,16 +149,16 @@ function SongRowBody({
               {mine && !canEdit ? (
                 <SaveForm action={releaseSong} keys={[`release:${song.id}`]}>
                   <Hidden values={{ token, songId: song.id }} />
-                  <button type="submit" className="btn sm ghost">
+                  <ConfirmButton question="Let someone else lead this song?" confirm="Free song slot">
                     I can&rsquo;t lead this
-                  </button>
+                  </ConfirmButton>
                 </SaveForm>
               ) : (
                 <SaveForm action={removeSong} keys={[`remove:${song.id}`]}>
                   <Hidden values={{ token, songId: song.id }} />
-                  <button type="submit" className="btn sm danger">
+                  <ConfirmButton question={`Remove “${song.title}”?`} confirm="Remove song" className="btn sm danger">
                     Remove song
-                  </button>
+                  </ConfirmButton>
                 </SaveForm>
               )}
             </div>

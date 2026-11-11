@@ -32,7 +32,7 @@ export default async function PublicMeeting({ params }: { params: Promise<{ date
   const past = date < today;
 
   return (
-    <main className="shell page">
+    <main id="main-content" tabIndex={-1} className="shell page">
       <Link href="/" className="backlink">
         <ArrowLeft size={18} aria-hidden /> Home
       </Link>

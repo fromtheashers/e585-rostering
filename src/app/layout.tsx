@@ -40,6 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en-GB">
       <body>
         <TouchActive />
+        <a href="#main-content" className="skip-link">Skip to content</a>
         {children}
       </body>
     </html>

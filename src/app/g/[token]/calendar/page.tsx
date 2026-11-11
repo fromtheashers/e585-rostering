@@ -34,7 +34,7 @@ export default async function CalendarPage({
   const [assignments, songs] = await Promise.all([assignmentsFor(ids), songsFor(ids)]);
 
   return (
-    <main className="shell page" style={{ maxWidth: 760 }}>
+    <main id="main-content" tabIndex={-1} className="shell page" style={{ maxWidth: 760 }}>
       <div>
         <h1 className="greeting sub">Which Fridays we meet</h1>
         <p className="lede">

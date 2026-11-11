@@ -26,7 +26,7 @@ export default async function PublicHome() {
 
   if (!next) {
     return (
-      <main className="shell page">
+      <main id="main-content" tabIndex={-1} className="shell page">
         <div>
           <h1 className="greeting">No Fridays are planned yet.</h1>
           <p className="lede">When the next meeting is added, its roster shows up here.</p>
@@ -41,7 +41,7 @@ export default async function PublicHome() {
   const sets = setsFor(next.id, songRoles, panes, people, songs);
 
   return (
-    <main className="shell page">
+    <main id="main-content" tabIndex={-1} className="shell page">
       <div>
         <h1 className="greeting">Who&rsquo;s serving {relativeFriday(today, next.date)}</h1>
         <p className="lede">

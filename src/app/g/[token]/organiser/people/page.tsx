@@ -27,7 +27,7 @@ export default async function People({
   const removed = everyone.filter((p) => !p.active);
 
   return (
-    <main className="shell page" style={{ maxWidth: 760 }}>
+    <main id="main-content" tabIndex={-1} className="shell page" style={{ maxWidth: 760 }}>
       <Link href={`${base}/more`} className="backlink">
         <ArrowLeft size={18} aria-hidden /> More
       </Link>

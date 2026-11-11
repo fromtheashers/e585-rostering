@@ -29,7 +29,7 @@ export default async function PublicPin({ params }: { params: Promise<{ id: stri
   if (!p) notFound();
 
   return (
-    <main className="shell page" style={{ maxWidth: 520 }}>
+    <main id="main-content" tabIndex={-1} className="shell page" style={{ maxWidth: 520 }}>
       <Link href="/sign-in" className="backlink">
         <ArrowLeft size={18} aria-hidden /> Not {firstName(p.name)}?
       </Link>

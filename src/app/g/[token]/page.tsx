@@ -23,7 +23,7 @@ export default async function Home({ params }: { params: Promise<{ token: string
 
   if (!next) {
     return (
-      <main className="shell page">
+      <main id="main-content" tabIndex={-1} className="shell page">
         <div>
           <h1 className="greeting">{me.name.split(" ")[0]}, no Fridays are planned yet.</h1>
           <p className="lede">When the organiser adds the next meeting, its roster shows up here.</p>
@@ -47,7 +47,7 @@ export default async function Home({ params }: { params: Promise<{ token: string
   const sets = setsFor(next.id, songRoles, panes, people, songs);
 
   return (
-    <main className="shell page">
+    <main id="main-content" tabIndex={-1} className="shell page">
       <div>
         <h1 className="greeting">{greetingFor({ me, mine, open: openCount(panes), when })}</h1>
         <p className="lede">

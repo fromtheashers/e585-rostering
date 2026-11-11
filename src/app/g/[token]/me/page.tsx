@@ -29,7 +29,7 @@ export default async function MePage({ params }: { params: Promise<{ token: stri
   const servingSoon = assignments.some((a) => a.personId === me.id && a.status === "confirmed");
 
   return (
-    <main className="shell page" style={{ maxWidth: 760 }}>
+    <main id="main-content" tabIndex={-1} className="shell page" style={{ maxWidth: 760 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
         <Avatar person={me} size="lg" />
         <div>

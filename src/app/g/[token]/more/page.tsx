@@ -34,7 +34,7 @@ export default async function More({ params }: { params: Promise<{ token: string
   const now = new Date();
 
   return (
-    <main className="shell page" style={{ maxWidth: 760 }}>
+    <main id="main-content" tabIndex={-1} className="shell page" style={{ maxWidth: 760 }}>
       <h1 className="greeting sub">More</h1>
 
       <section className="panel stack" aria-labelledby="share-h">

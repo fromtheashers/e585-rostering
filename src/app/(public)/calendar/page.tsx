@@ -28,7 +28,7 @@ export default async function PublicCalendar({ searchParams }: { searchParams: P
   const [assignments, songs] = await Promise.all([assignmentsFor(ids), songsFor(ids)]);
 
   return (
-    <main className="shell page" style={{ maxWidth: 760 }}>
+    <main id="main-content" tabIndex={-1} className="shell page" style={{ maxWidth: 760 }}>
       <div>
         <h1 className="greeting sub">Which Fridays we meet</h1>
         <p className="lede">Fridays with a meeting are dark. Tap one to see who&rsquo;s serving.</p>

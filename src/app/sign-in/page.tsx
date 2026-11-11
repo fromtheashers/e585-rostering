@@ -15,7 +15,7 @@ export default async function PublicSignIn() {
   const withPin = people.filter((p) => p.pinHash);
 
   return (
-    <main className="shell page" style={{ maxWidth: 720 }}>
+    <main id="main-content" tabIndex={-1} className="shell page" style={{ maxWidth: 720 }}>
       <Link href="/" className="backlink">
         <ArrowLeft size={18} aria-hidden /> Back to the roster
       </Link>

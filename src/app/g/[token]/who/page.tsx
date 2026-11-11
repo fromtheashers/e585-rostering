@@ -21,7 +21,7 @@ export default async function Who({
   const href = (p: Person) => `/g/${token}/who/${p.id}${next ? `?next=${encodeURIComponent(next)}` : ""}`;
 
   return (
-    <main className="shell page" style={{ maxWidth: 720 }}>
+    <main id="main-content" tabIndex={-1} className="shell page" style={{ maxWidth: 720 }}>
       <div>
         <h1 className="greeting">Who are you?</h1>
         <p className="lede">Tap your name and make a PIN. Once you have, nobody else can pick your name.</p>

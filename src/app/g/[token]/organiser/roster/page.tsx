@@ -60,7 +60,7 @@ export default async function RosterGrid({ params }: { params: Promise<{ token: 
   for (const a of confirmed) load.set(a.personId, (load.get(a.personId) ?? 0) + 1);
 
   return (
-    <main className="shell page">
+    <main id="main-content" tabIndex={-1} className="shell page">
       <Link href={`${base}/more`} className="backlink">
         <ArrowLeft size={18} aria-hidden /> More
       </Link>

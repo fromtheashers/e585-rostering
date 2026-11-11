@@ -40,7 +40,7 @@ export default async function Settings({
   const zones = ZONES.includes(group.timezone) ? ZONES : [group.timezone, ...ZONES];
 
   return (
-    <main className="shell page" style={{ maxWidth: 760 }}>
+    <main id="main-content" tabIndex={-1} className="shell page" style={{ maxWidth: 760 }}>
       <Link href={`${base}/more`} className="backlink">
         <ArrowLeft size={18} aria-hidden /> More
       </Link>

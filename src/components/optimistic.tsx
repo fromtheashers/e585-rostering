@@ -49,7 +49,7 @@ export function SaveRoot({ children }: { children: ReactNode }) {
   return (
     <SaverContext.Provider value={value}>
       {children}
-      {failures ? <Toast key={failures} message={FAILED} /> : null}
+      {failures ? <Toast key={failures} message={FAILED} persistent /> : null}
     </SaverContext.Provider>
   );
 }
